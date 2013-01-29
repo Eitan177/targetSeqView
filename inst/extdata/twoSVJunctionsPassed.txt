@@ -1,0 +1,3 @@
+SampleDesc	Chr1	Start1	End1	LeftSideSegDup	Chr2	Start2	End2	RightSideSeqDup	ValidationStatus	Sample
+LCL	14	107083256	107083431	TRUE	14	107078225	107078400	FALSE	PCR Validated	1320KB0001MultAlnForVignette.bam
+LCL	2	89544257	89544432	TRUE	2	89533400	89533644	TRUE	PCR Validated	1320KB0001MultAlnForVignette.bam
