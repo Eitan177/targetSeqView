@@ -1,0 +1,104 @@
+%\VignetteIndexEntry{targetSeqView Vignette}
+%\VignetteKeywords{alignment}
+%\VignettePackage{targetSeqView}
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage[numbers]{natbib}
+\usepackage{color}
+\usepackage[margin=1in]{geometry}
+
+\newcommand{\scscst}{\scriptscriptstyle}
+\newcommand{\scst}{\scriptstyle}
+\newcommand{\Rpackage}[1]{\textit{#1}}
+\newcommand{\Rfunction}[1]{\texttt{#1}}
+\newcommand{\Robject}[1]{\texttt{#1}}
+\newcommand{\Rclass}[1]{\texttt{#1}}
+\newcommand{\R}{\textsf{R}}
+
+\title{viewing alignments for structural rearrangements}
+\author{Eitan Halper-Stromberg}
+
+\begin{document}
+
+\maketitle
+
+<<<setup, echo=FALSE>>=
+    options(width=70)
+topdf <- function(){
+    Sweave("targetSeqView.Rnw")
+    tools::texi2pdf("targetSeqView.tex")
+    }
+@
+
+\begin{abstract}
+This package is designed to evaluate structural rearrangment calls from a candidate list, the output for tools such as
+HYDRA,GASV,VariationHunter, etc. The user should have a text file with one row per candidate structural rearrangment. For each
+candidate rearrangement, readpairs from the two loci will be read in and realigned three different ways. One of these realignments
+supports the structural variant, with readpairs realigned to a sequence representing the rearranged sequence (the sequence of the two
+loci concatenated together). The other two realignments support no structural rearrangement, with readpairs realigned to the two
+sequences representing contiguous fragments of the reference genome taken from each of the two loci.
+\end{abstract}
+
+\section{Simple Usage}
+
+<<pkgs>>=
+library(targetSeqView)
+@
+
+<<pkgs2>>=
+library(grid)
+library(doMC)
+@
+
+\subsection*{Perform realignment on 2 candidates that failed to validate}
+<<failed2validate>>=
+path <- system.file("extdata", package="targetSeqView")
+
+nodes=1
+registerDoMC(nodes)
+filename=file.path(path,"twoSVJunctionsFailed.txt")
+retfail=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
+estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
+print('The likelihood scores for the events failing validation:')
+print(retfail[[2]])
+@
+\subsection*{View the 3 realignment configurations for one of these failing events}
+<<failed2validatefig1,fig=TRUE>>=
+    p1=formatPlot(retfail[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
+p2=formatPlot(retfail[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant')
+p3=formatPlot(retfail[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant')
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(3, 1)))
+print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
+print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
+print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
+@
+
+
+\subsection*{Perform realignment on 2 candidates that passed validation}
+<<passedvalidation>>=
+filename=file.path(path,"twoSVJunctionsPassed.txt")
+retpass=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
+estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
+print('The likelihood scores for the events passing validation:')
+print(retpass[[2]])
+@
+\subsection*{View the 3 realignment configurations for one of these passing events}
+<<passedvalidatefig1,fig=TRUE>>=
+p1=formatPlot(retpass[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
+p2=formatPlot(retpass[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant')
+p3=formatPlot(retpass[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant')
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(3, 1)))
+print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
+print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
+print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
+@
+
+
+<<sessionInfo,results=tex>>=
+toLatex(sessionInfo())
+@
+
+\end{document}
