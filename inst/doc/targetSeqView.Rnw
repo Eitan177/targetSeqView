@@ -48,10 +48,15 @@ library(targetSeqView)
 
 <<pkgs2>>=
 library(grid)
-library(doMC)
 @
 
 \subsection*{Perform realignment on 2 candidates that failed to validate}
+Our text file indicates the loci allegedely involved in two structural variants, one structural variant per row. For each row we will load
+reads aligning to the two loci involved in the structural variant from our bam file, realign these reads, calculate our
+likelihood score, and visualize the realignments. These particular structural variants failed PCR validation This will become evident
+once we view the realignments (we will do this for the one of the structural variants) and when we inspect the likelihood scores (we will
+compare these to the likelihood scores from candidate structural variants that passed PCR validation)
+
 <<failed2validate>>=
 path <- system.file("extdata", package="targetSeqView")
 
@@ -60,12 +65,12 @@ registerDoMC(nodes)
 filename=file.path(path,"twoSVJunctionsFailed.txt")
 retfail=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
 estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
-print('The likelihood scores for the events failing validation:')
+## The likelihood scores for the events failing validation
 print(retfail[[2]])
 @
 \subsection*{View the 3 realignment configurations for one of these failing events}
 <<failed2validatefig1,fig=TRUE>>=
-    p1=formatPlot(retfail[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
+p1=formatPlot(retfail[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
 p2=formatPlot(retfail[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant')
 p3=formatPlot(retfail[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant')
 grid.newpage()
@@ -75,26 +80,48 @@ print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
 print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
 @
 
+\subsection*{Explanation of Pictures}
+The top picture shows read pairs aligning to the two loci allegedly involved in the structural variant. This alignment supports the
+existence of a structural variant as each paired end has one end aligned to the left locus and one end aligned to the right locus. There
+appear to be 4 snps identified consistently by the reads in the locus on the left side of the top picture. The picture in the middle
+represents the same read pairs as in the top picture aligned only to locus on the right side of the top picture. The absence of white space
+between some read pairs indicates paired ends with overlapping alignments, i.e fragments that are shorter than 200 bp. The read ends on
+the left of the middle picture indicate 4 snps and one indel. The similarlity in alignment qualities between the alignment supporting the
+structural variant and one of the two alignments supporting no structural variant is an indication that this is a false positive.
+
 
 \subsection*{Perform realignment on 2 candidates that passed validation}
 <<passedvalidation>>=
 filename=file.path(path,"twoSVJunctionsPassed.txt")
 retpass=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
 estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
-print('The likelihood scores for the events passing validation:')
+## The likelihood scores for the events passing validation:
 print(retpass[[2]])
 @
+If we compare the likeliood scores from the validated events to the unvalidated events we see that the validation event likelihoods
+are substantially greater
+
 \subsection*{View the 3 realignment configurations for one of these passing events}
 <<passedvalidatefig1,fig=TRUE>>=
-p1=formatPlot(retpass[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
-p2=formatPlot(retpass[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant')
-p3=formatPlot(retpass[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant')
+p1=formatPlot(retpass[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant',
+mismatchcolor='red')
+p2=formatPlot(retpass[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant',
+mismatchcolor='red')
+p3=formatPlot(retpass[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant',
+mismatchcolor='red')
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(3, 1)))
 print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
 print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
 print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
 @
+\subsection*{Explanation of Pictures}
+As with the earlier pictures, the top picture shows alignments support a structural variant while the middle and bottom
+pictures show alignments supporting no structural variant. The top picture shows read pairs with both ends aligning well
+to each of the two loci. The middle and bottom pictures have one read from each pair aligning well and one read aligning
+poorly (mismatches are all indicated in red here for clarity, a viewing option available in the formatPlot function). This
+pattern is indicative of a true structural rearrangement, as we are unable to make both pairs of the paired end reads align
+well to only one locus of the two involved in the junction.
 
 
 <<sessionInfo,results=tex>>=

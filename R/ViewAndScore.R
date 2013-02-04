@@ -1,5 +1,7 @@
 ViewAndScore <-
-    function(filename,initialExpansion=500,estimateIndelRate=TRUE, indelRate=0.005,estimateMmRate=TRUE,mmRate=0.01,getReadLength=TRUE,readLength=100,scoreOnly=FALSE,normalBam='',bamFilePath='',build='hg19',verbose=TRUE){
+    function(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TRUE, indelRate=0.005,estimateMmRate=TRUE,mmRate=0.01,
+             getReadLength=TRUE,readLength=100,scoreOnly=FALSE,normalBam='',bamFilePath='',allowedMM=6,gapOpeningArg = -4, gapExtensionArg = -1,
+             substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',verbose=FALSE){
 
         alignedall <- list()
         ## replaced, make sure 'chr' precedes chr #, make sure name of bam MultipleAlnsort.bam in input
@@ -21,7 +23,7 @@ ViewAndScore <-
             mmRate <- ifelse(estimateMmRate,mmRateEstimate,mmRate)
             print(mmRate)
         }
-        alignedall <- alignView(events,scoreOnly=scoreOnly,initialExpansion=initialExpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,build=build,verbose=verbose)
+        alignedall <- alignView(events,scoreOnly=scoreOnly,initialExpansion=initialExpansion,refexpansion=refexpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,allowedMM=allowedMM,gapOpeningArg = gapOpeningArg, gapExtensionArg = gapExtensionArg,substitutionMat=substitutionMat,build=build,verbose=verbose)
 
         likelihoodScores <- vector()
         for(jj in 1:length(alignedall)){

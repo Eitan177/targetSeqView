@@ -10,7 +10,7 @@ alignment probabilities which will be used by the ViewAndScore function
 to make likelihoods
 }
 \usage{
-alignView(events, filtsings = TRUE, scoreOnly = FALSE, allowedMM = 6, initialExpansion = 0, refexpansion = 400, indelRate = 0.005, mmRate = 0.01, readLength = 100, build="hg19",verbose = FALSE)
+alignView(events,filtsings=TRUE,scoreOnly=FALSE,allowedMM=6,initialExpansion=0,refexpansion=400,indelRate=.005,mmRate=.01,readLength=100,gapOpeningArg = -4, gapExtensionArg = -1,substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',verbose=FALSE)
 }
 \arguments{
   \item{events}{
@@ -46,6 +46,15 @@ alignView(events, filtsings = TRUE, scoreOnly = FALSE, allowedMM = 6, initialExp
   \item{readLength}{
     read length
   }
+  \item{gapOpeningArg}{
+    gapOpening penalty to be used by pairwiseAlignment
+  }
+  \item{gapExtensionArg}{
+    gapExtension penalty to be used by pairwiseAlignment
+  }
+  \item{substitutionMat}{
+    substitution matrix to be used by pairwiseAlignment
+  }  
   \item{build}{
     build of human genome reference to use
   }

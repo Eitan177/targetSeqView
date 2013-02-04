@@ -4,21 +4,38 @@ dfmake2 <-
         ## combine paired end
 
         fordPEs <- split(fordf1A,bamn)
+
         if(filtSings){
             ## make sure two reads pass per read name pass to this point
             btab <- table(bamn);fordPEs <- fordPEs[names(fordPEs) %in% names(btab)[btab>1]]
-            ## make sure for each pair of read, majority of reference is on difference reference if there are two reference
+            ## make sure for each pair of read, majority of reference is on different reference if there are two reference
             if(length(rngsAlign)>1){
                 difrefs <- sapply(fordPEs,function(x){freadref=table(x[[1]][,3]);sreadref=table(x[[2]][,3]);names(freadref)[which.max(freadref)] != names(sreadref)[which.max(sreadref)]})
                 fordPEs <- fordPEs[difrefs]
             }
         }
 
-        fordPEsComb <- lapply(fordPEs,function(x){do.call(rbind,x)})
+
+        fordPEsComb <- lapply(fordPEs,function(x){
+            if(length(x)<=2){
+                do.call(rbind,x)
+            }else{
+                if(length(rngsAlign)>1){
+                    readrefs=unlist(lapply(x,function(y){y[1,3]}))
+                    tokeep=match(unique(readrefs),readrefs)
+                }else{
+                    di=as.matrix(dist(unlist(lapply(x,function(y){y[1,2]}))))
+                    tokeep=which(di == max(di), arr.ind = TRUE)[1:2]
+                }
+                do.call(rbind,x[tokeep])
+            }
+        })
+
         fordPEsCombDup <- lapply(fordPEsComb,function(x){x2=x[order(as.numeric(x[,2]),x[,1]),];x3=x2[!duplicated(x2[,2]),];if(length(which(duplicated(x2[,2])))>(nrow(x3)*.7) & length(rngsAlign)>1){NA}else{x3}})
         fordPEsCombDup[which(is.na(fordPEsCombDup))]<-NULL
         vvA <- unlist(lapply(fordPEsCombDup,function(x){as.numeric(as.character(data.frame(x)[1,2]))}))
-                                        #browser()
+
+
         fordf2A <- sapply(order(as.numeric(vvA)),function(x){list(fordPEsCombDup[[x]])})
         fordf3A <- sapply(1:length(fordf2A),function(x){list(cbind(fordf2A[[x]],rep((x),nrow(fordf2A[[x]]))))})
         names(fordf3A) <- names(fordPEsCombDup)[(order(as.numeric(vvA)))]
@@ -40,6 +57,7 @@ dfmake2 <-
         formatrefsee <- data.frame(t(Biostrings::as.matrix(DNAStringSet(refsee))),refIndsee,refSide, -1,'refseq')
         colnames(formatrefsee) <- colnames(dftailA)
         dftailA <- rbind(dftailA,formatrefsee)#,zeros)
+
         return(dftailA)
     }
 dfmake <-
@@ -50,7 +68,6 @@ dfmake <-
                                           ## na.omit is to treat condition where ees run off the end
                                           cc=na.omit(cbind(x2,refInd[newy:(length(x2)+newy-1)],refM[newy:(length(x2)+newy-1)]));dd=diff(as.numeric(cc[,2]));
                                           ll=list(cc)},Biostrings::as.list(aa),as.list(startpos),as.list(frvec))
-
         return(dfmake2(fordf1A,deL,bamn,refalign,refInd,refM,filtSings,rngsAlign))
     }
 doPlot <-
@@ -165,14 +182,15 @@ mainAlignView <-
             }
         }
 
+
         rngsAlign <- rngsAlign#+100
         Hsapiens <- get("Hsapiens")
         if(length(GenomicRanges::unique(seqnames(rngsAlign)))==1){
-            refalign <- paste(Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[1],sep='')]],ranges(rngsAlign)),collapse='')
+            refalign <- paste(suppressWarnings(Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[1],sep='')]],ranges(rngsAlign))),collapse='')
         }else if(length(GenomicRanges::unique(seqnames(rngsAlign)))==2){
 
-            ref1 <- Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[1],sep='')]],ranges(rngsAlign)[1])
-            ref2 <- Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[2],sep='')]],ranges(rngsAlign)[2])
+            ref1 <- suppressWarnings(Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[1],sep='')]],ranges(rngsAlign)[1]))
+            ref2 <- suppressWarnings(Views(Hsapiens[[paste('chr',seqnames(rngsAlign)[2],sep='')]],ranges(rngsAlign)[2]))
             refalign <- paste(ref1,ref2,sep='')
         }else{
             stop("More than 2 reference loci not supported")
@@ -202,7 +220,7 @@ mainAlignView <-
 
         trimF <- trimFunc(alignF,TRUE)
         trimR <- trimFunc(alignR,TRUE)
-                                        #browser()
+
 
 
         if(filterbyMM){
@@ -275,7 +293,7 @@ mainAlignView <-
         mismatchBinom <- sapply(allMisM,function(x){max(sum(dbinom(x:readLength,readLength,indelRate)), 1-ifelse(x==0,0,sum(dbinom(0:(x-1),readLength,mmRate))))})
         pval <- indelBinom*mismatchBinom
         result <- list(bamnamesUse2,dftailA,pval,allindel,allMisM)
-                                        #browser()
+
         return(result)
     }
 

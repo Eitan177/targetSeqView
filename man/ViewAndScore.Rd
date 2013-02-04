@@ -9,7 +9,7 @@ get reads from a bam file, realign reads in three configurations, and return an 
 likelihood scores
 }
 \usage{
-ViewAndScore(filename, initialExpansion = 500, estimateIndelRate = TRUE, indelRate = 0.005, estimateMmRate = TRUE, mmRate = 0.01, getReadLength = TRUE, readLength = 100, scoreOnly = FALSE, normalBam = "", bamFilePath = "", build="hg19",verbose = TRUE)
+ViewAndScore(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TRUE,indelRate=0.005,estimateMmRate=TRUE,mmRate=0.01,getReadLength=TRUE,readLength=100,scoreOnly=FALSE,normalBam='',bamFilePath='',allowedMM=6,gapOpeningArg = -4, gapExtensionArg = -1,substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',verbose=FALSE)
 }
 \arguments{
   \item{filename}{
@@ -20,6 +20,14 @@ ViewAndScore(filename, initialExpansion = 500, estimateIndelRate = TRUE, indelRa
     5' and 3' ends, relative to the coordinates read in from the text file
     before realigning reads in the configuraiton supporting the structural variant
   }
+  \item{refExpansion}{
+    expand the reference sequence by this number of nucleotides on both the
+    5' and 3' ends, relative to the coordinates read in from the text file
+    before realigning reads in the two configurations supporting no
+    structural variant. The minimum suggested setting for this would be
+    the median size of fragments in the library.
+  }
+  
   \item{estimateIndelRate}{
     if true estimate the indel rate from good alignments taken from a bam
     file with normal alignments
@@ -51,6 +59,18 @@ ViewAndScore(filename, initialExpansion = 500, estimateIndelRate = TRUE, indelRa
   }
   \item{bamFilePath}{
     path to bam file with reads to realign
+  }
+  \item{allowedMM}{
+    number of mismatches to allow per read for initial alignment
+  }
+  \item{gapOpeningArg}{
+    gapOpening penalty to be used by pairwiseAlignment
+  }
+  \item{gapExtensionArg}{
+    gapExtension penalty to be used by pairwiseAlignment
+  }
+  \item{substitutionMat}{
+    substitution matrix to be used by pairwiseAlignment
   }
   \item{build}{
     human genome referene build to use

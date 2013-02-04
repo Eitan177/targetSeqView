@@ -8,11 +8,15 @@ formatPlot
 plot realigned reads
 }
 \usage{
-formatPlot(dftailA,title)
+formatPlot(dftailA, mismatchcolor = "", title = "Alignment Plot")
 }
 \arguments{
   \item{dftailA}{
     data frame containing output from alignView or ViewAndScore
+  }
+  \item{mismatchcolor}{
+    color of mismatching bases. If unset each mismatched base will be a
+    different color
   }
   \item{title}{
     title of plot

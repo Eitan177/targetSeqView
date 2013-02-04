@@ -1,0 +1,5 @@
+The purpose of  makeAltBam.py is to take a bwa aligned bam file with uniquely mapped reads and create a new bam file with multiply mapped reads.
+The positions specified in the XA tag of the input file are given their own line in the out bam file. An alternate method to obtain a mutliply
+mapped bam file would be involve using bowtie2 with the -a or -k option set. To run the pythong script (from a linux prompt):
+
+python makeAltBam.py $bamin $bamout
