@@ -1,7 +1,13 @@
 ViewAndScore <-
     function(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TRUE, indelRate=0.005,estimateMmRate=TRUE,mmRate=0.01,
+<<<<<<< HEAD
              getReadLength=TRUE,readLength=100,scoreOnly=FALSE,normalBam='',bamFilePath='',allowedMM=6,gapOpeningArg = -4, gapExtensionArg = -1,
              substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',verbose=FALSE){
+=======
+             getReadLength=TRUE,readLength=100,scoreOnly=FALSE,normalBam='',bamFilePath='',allowedMM=6,gapOpeningArg = -4,
+             filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,
+             gapExtensionArg = -1,substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',verbose=FALSE){
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 
         alignedall <- list()
         ## replaced, make sure 'chr' precedes chr #, make sure name of bam MultipleAlnsort.bam in input
@@ -23,6 +29,7 @@ ViewAndScore <-
             mmRate <- ifelse(estimateMmRate,mmRateEstimate,mmRate)
             print(mmRate)
         }
+<<<<<<< HEAD
         alignedall <- alignView(events,scoreOnly=scoreOnly,initialExpansion=initialExpansion,refexpansion=refexpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,allowedMM=allowedMM,gapOpeningArg = gapOpeningArg, gapExtensionArg = gapExtensionArg,substitutionMat=substitutionMat,build=build,verbose=verbose)
 
         likelihoodScores <- vector()
@@ -41,5 +48,36 @@ ViewAndScore <-
             likelihoodScores[jj] <- newscore
         }
 
+=======
+        alignedall <- alignView(events,filtsings=filtsings,findSplitReads=findSplitReads,dedup=dedup,scoreOnly=scoreOnly,initialExpansion=initialExpansion,refexpansion=refexpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,allowedMM=allowedMM,gapOpeningArg = gapOpeningArg, gapExtensionArg = gapExtensionArg,substitutionMat=substitutionMat,build=build,verbose=verbose)
+
+        likelihoodScores <- vector()
+        if(nrow(events)==1){
+            newscore <- Inf; jj <- 1
+            cc <- cbind(alignedall[[1]][[3]],alignedall[[2]][[3]],alignedall[[3]][[3]])
+            likelis <- alignedall[[1]][[3]]/
+                apply(cbind(alignedall[[2]][[3]],alignedall[[3]][[3]]),1,max)
+            while(newscore %in% c(Inf,NaN)){
+                newscore <- sum(log(likelis,10))
+                likelis <- likelis[-which.max(likelis)]
+            }
+            likelihoodScores[jj] <- newscore
+        }else{
+            for(jj in 1:length(alignedall)){
+                newscore <- Inf
+                ## if reads <10^-10 max across all loci are removed, roc is a bit better
+                cc <- cbind(alignedall[[jj]][[1]][[3]],alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]])
+                ##                rem=which(apply(cc,1,max)<10^-6)
+                likelis <- alignedall[[jj]][[1]][[3]]/
+                    apply(cbind(alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]]),1,max)
+                ##                if(length(rem)>0) likelis=likelis[-rem]
+                while(newscore %in% c(Inf,NaN)){
+                    newscore <- sum(log(likelis,10))
+                    likelis <- likelis[-which.max(likelis)]
+                }
+                likelihoodScores[jj] <- newscore
+            }
+        }
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
         return(list(alignedall,likelihoodScores))
     }

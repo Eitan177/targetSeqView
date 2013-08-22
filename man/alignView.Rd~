@@ -72,10 +72,7 @@ object holding one list element per candidate rearrangement
 Eitan Halper-Stromberg
 }
 \examples{
-<<<<<<< HEAD
-=======
 library(grid)
->>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 path <- system.file("extdata", package="targetSeqView")
 filename=file.path(path, "twoSVJunctionsFailed.txt")
 events=as.matrix(read.delim(file=filename,header=TRUE))
@@ -86,23 +83,15 @@ nodes=1
 registerDoMC(nodes)
 retfail=alignView(events=events,initialExpansion=500,build='hg19')
 for(ii in 1:length(retfail)){
-<<<<<<< HEAD
-    dev.new();
-    formatPlot(retfail[[ii]][[1]][[2]],title='Alignment supporting a structural variant')
-    dev.new();
-    formatPlot(retfail[[ii]][[2]][[2]],title='Alignment supporting no structural variant')
-    dev.new();
-    formatPlot(retfail[[ii]][[3]][[2]],title='Alignment supporting no structural variant')
-=======
     p1=formatPlot(retfail[[ii]][[1]][[2]],title='Alignment supporting a structural variant')
     p2=formatPlot(retfail[[ii]][[2]][[2]],title='Alignment supporting no structural variant')
-    p3=formatPlot(retfail[[ii]][[3]][[2]],title='Alignment supporting no structural variant')
+    p3=formatPlot(retfail[[ii]][[3]][[2]],title='Alignment supporting no
+structural variant')
     grid.newpage()
     pushViewport(viewport(layout = grid.layout(3, 1)))
     print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
     print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
     print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
->>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 }
 }
 

@@ -1,16 +1,45 @@
 
 dfmake2 <-
+<<<<<<< HEAD
     function(fordf1A,deL,bamn,refalign,refInd,refM,filtSings,rngsAlign){
+=======
+    function(fordf1A,deL,bamn,refalign,refInd,refM,filtSings,findSplitReads,rngsAlign){
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
         ## combine paired end
 
         fordPEs <- split(fordf1A,bamn)
 
         if(filtSings){
             ## make sure two reads pass per read name pass to this point
+<<<<<<< HEAD
             btab <- table(bamn);fordPEs <- fordPEs[names(fordPEs) %in% names(btab)[btab>1]]
             ## make sure for each pair of read, majority of reference is on different reference if there are two reference
             if(length(rngsAlign)>1){
                 difrefs <- sapply(fordPEs,function(x){freadref=table(x[[1]][,3]);sreadref=table(x[[2]][,3]);names(freadref)[which.max(freadref)] != names(sreadref)[which.max(sreadref)]})
+=======
+            if(findSplitReads == FALSE){
+                btab <- table(bamn);fordPEs <- fordPEs[names(fordPEs) %in% names(btab)[btab>1]]
+            }
+
+            ## make sure for each pair of read, majority of reference is on different reference if there are two reference
+            if(length(rngsAlign)>1){
+                difrefs <- sapply(fordPEs,function(x){
+                    userec=FALSE;
+                    if(findSplitReads){
+                        freadref=table(x[[1]][,3]); SplitRead <- length(freadref)>1 & all(freadref>30)
+                        if(length(x)>1){
+                            sreadref=table(x[[2]][,3]); SecondReadSplit <- length(sreadref)>1 & all(sreadref>30)
+                            SplitRead <- SplitRead | SecondReadSplit
+                        }
+                        userec <- SplitRead
+                    };
+                    if((userec==FALSE | findSplitReads == FALSE) & length(x)>1){
+                        freadref=table(x[[1]][,3]);sreadref=table(x[[2]][,3]);
+                        userec <- names(freadref)[which.max(freadref)] != names(sreadref)[which.max(sreadref)]
+                    }
+                    userec
+                })
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
                 fordPEs <- fordPEs[difrefs]
             }
         }
@@ -37,6 +66,10 @@ dfmake2 <-
 
 
         fordf2A <- sapply(order(as.numeric(vvA)),function(x){list(fordPEsCombDup[[x]])})
+<<<<<<< HEAD
+=======
+
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
         fordf3A <- sapply(1:length(fordf2A),function(x){list(cbind(fordf2A[[x]],rep((x),nrow(fordf2A[[x]]))))})
         names(fordf3A) <- names(fordPEsCombDup)[(order(as.numeric(vvA)))]
         namecol <- rep(names(fordf3A),unlist(sapply(fordf3A,nrow)))
@@ -61,14 +94,22 @@ dfmake2 <-
         return(dftailA)
     }
 dfmake <-
+<<<<<<< HEAD
     function(aa,frvec,fname,amatname,startpos,deL,bamn,refalign,refInd,refM,filtSings,rngsAlign){
+=======
+    function(aa,frvec,fname,amatname,startpos,deL,bamn,refalign,refInd,refM,filtSings,findSplitReads,rngsAlign){
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 
         ees <- rep('E',7)
         fordf1A <- mapply(function(x,y,z){x2=strsplit(gsub('S','N',toString(x)),'')[[1]];if(z=='F'){newy=y; x2=c(x2,ees) }else{newy=max(1,y-7); x2=c(rep('E',y-newy),x2)};
                                           ## na.omit is to treat condition where ees run off the end
                                           cc=na.omit(cbind(x2,refInd[newy:(length(x2)+newy-1)],refM[newy:(length(x2)+newy-1)]));dd=diff(as.numeric(cc[,2]));
                                           ll=list(cc)},Biostrings::as.list(aa),as.list(startpos),as.list(frvec))
+<<<<<<< HEAD
         return(dfmake2(fordf1A,deL,bamn,refalign,refInd,refM,filtSings,rngsAlign))
+=======
+        return(dfmake2(fordf1A,deL,bamn,refalign,refInd,refM,filtSings,findSplitReads,rngsAlign))
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
     }
 doPlot <-
     function(trimA){
@@ -169,7 +210,11 @@ withflankNs <-
     }
 
 mainAlignView <-
+<<<<<<< HEAD
     function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,returnScoreOnly=FALSE,filternames,dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate=.005,mmRate=.01,readLength=100){
+=======
+    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,returnScoreOnly=FALSE,filternames,dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate=.005,mmRate=.01,readLength=100){
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 
         bam <- getBam(bamFile,rngsRead)
         bamnames <- getBamNames(bam)
@@ -206,7 +251,11 @@ mainAlignView <-
         mat <- substitutionMat;
         alignFnew <- pairwiseAlignment(bamseqs,refalign,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
         alignRnew <- pairwiseAlignment(reverseComplement(bamseqs),refalign,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+<<<<<<< HEAD
 
+=======
+#browser()
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 
         AlignBest <- apply(cbind(score(alignFnew),score(alignRnew)),1,which.max)
 
@@ -257,7 +306,12 @@ mainAlignView <-
 
 
 
+<<<<<<< HEAD
         dftailA <- dfmake(c(trimF,trimR),frvec  ,"fordf1A","bmat",c(correctPosFor,correctPosRev) ,c(deLF,deLR),bamnamesUse,refalign,refInd,refM,filtSings,rngsAlign)
+=======
+        dftailA <- dfmake(c(trimF,trimR),frvec  ,"fordf1A","bmat",c(correctPosFor,correctPosRev) ,c(deLF,deLR),bamnamesUse,
+                          refalign,refInd,refM,filtSings,findSplitReads,rngsAlign)
+>>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
 
 
         ## exlude refseq, hence the head(..,-1)

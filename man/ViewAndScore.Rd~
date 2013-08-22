@@ -18,28 +18,14 @@ ViewAndScore(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TR
   \item{initialExpansion}{
     expand the reference sequence by this number of nucleotides on both the
     5' and 3' ends, relative to the coordinates read in from the text file
-<<<<<<< HEAD
     before realigning reads in the configuraiton supporting the structural variant
   }
-  \item{refExpansion}{
-=======
-    before realigning reads in the configuraiton supporting the
-    structural variant. This may be a vector with each item
-    corresponding to one event.
-    
-  }
   \item{refexpansion}{
->>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
     expand the reference sequence by this number of nucleotides on both the
     5' and 3' ends, relative to the coordinates read in from the text file
     before realigning reads in the two configurations supporting no
     structural variant. The minimum suggested setting for this would be
-<<<<<<< HEAD
     the median size of fragments in the library.
-=======
-    the median size of fragments in the library. This may be a vector
-    with each item corresponding to one event.
->>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
   }
   
   \item{estimateIndelRate}{
@@ -75,7 +61,6 @@ ViewAndScore(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TR
     path to bam file with reads to realign
   }
   \item{allowedMM}{
-<<<<<<< HEAD
     number of mismatches to allow per read for initial alignment
   }
   \item{gapOpeningArg}{
@@ -86,22 +71,6 @@ ViewAndScore(filename,initialExpansion=500,refexpansion=400,estimateIndelRate=TR
   }
   \item{substitutionMat}{
     substitution matrix to be used by pairwiseAlignment
-=======
-    number of mismatches to allow per read for initial alignment.
-    This may be a vector with each item corresponding to one event.
-  }
-  \item{gapOpeningArg}{
-    gapOpening penalty to be used by pairwiseAlignment.
-    This may be a vector with each item corresponding to one event.    
-  }
-  \item{gapExtensionArg}{
-    gapExtension penalty to be used by pairwiseAlignment
-    This may be a vector with each item corresponding to one event.    
-  }
-  \item{substitutionMat}{
-    substitution matrix to be used by pairwiseAlignment.
-    This may be a list with each item corresponding to one event.    
->>>>>>> fe8fe54aa12fa5f53a9270a3804121d5b15455e9
   }
   \item{build}{
     human genome referene build to use
