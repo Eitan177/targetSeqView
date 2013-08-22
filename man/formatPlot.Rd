@@ -5,48 +5,49 @@
 formatPlot
 }
 \description{
-plot realigned reads
+create pictures for the three alignments considered in the construction
+of a likelihood score.
 }
 \usage{
-formatPlot(dftailA, mismatchcolor = "", title = "Alignment Plot")
+formatPlot(dfplot,mismatchcolor='red',title='',covMaxDisplay=Inf,flipLeftandRight=FALSE,cropGaps=TRUE,plotJunctions=NULL,nolegend=FALSE)
 }
 \arguments{
-  \item{dftailA}{
-    data frame containing output from alignView or ViewAndScore
-  }
-  \item{mismatchcolor}{
-    color of mismatching bases. If unset each mismatched base will be a
-    different color
-  }
-  \item{title}{
-    title of plot
-  }
+  \item{dfplot}{
+the data.frame returned from the ViewAndScoreFull function
 }
+  \item{mismatchcolor}{
+display mismatches as this color
+}
+\item{title}{
+plot title
+}
+\item{covMaxDisplay}{
+display at a maximum this number of read-pairs
+}
+\item{flipLeftandRight}{
+flip the alignment views of the two loci so that the junction displayed
+on the right will now be on the left and vice versa
+}
+\item{cropGaps}{
+Only display bases that contain aligned reads
+}
+\item{plotJunctions}{
+names of the two junctions plotted
+}
+\item{nolegend}{
+do not show a legend
+}}
 \details{
-  see example
+see example
 }
 \value{
-  a ggplot2 object
+A list containing two items; (1) a ggplot object and (2) the names of
+the plotted junctions.
+
 }
 \author{
-  Eitan Halper-Stromberg
+Eitan Halper-Stromberg
 }
 \examples{
-path <- system.file("extdata", package="targetSeqView")
-filename=file.path(path, "twoSVJunctionsFailed.txt")
-nodes=1
-registerDoMC(nodes)
-retfail=ViewAndScore(filename=filename,bamFilePath=path,
-estimateIndelRate=FALSE,estimateMmRate=FALSE,getReadLength=FALSE,
-build='hg19',verbose=TRUE)
-print('The likelihood scores for the events failing validation:')
-print(retfail[[2]])
-for(ii in 1:length(retfail[[1]])){
-    dev.new();
-    formatPlot(retfail[[1]][[ii]][[1]][[2]],title='Alignment supporting a structural variant')
-    dev.new();
-    formatPlot(retfail[[1]][[ii]][[2]][[2]],title='Alignment supporting no structural variant')
-    dev.new();
-    formatPlot(retfail[[1]][[ii]][[3]][[2]],title='Alignment supporting no structural variant')
-}
+## this function is called by the plotSV method
 }

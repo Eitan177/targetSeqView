@@ -1,2 +1,5 @@
-export(ViewAndScore, formatPlot, alignView, normalAlign)
+export(ViewAndScoreFull, formatPlot,getErrorRate,doQuickScore,precomputedWholeGenome101bpMMRate,precomputedWholeGenome101bpIndelRate,
+       precomputedTargetCapture100bpMMRate,precomputedTargetCapture100bpIndelRate)
+exportMethods("bamFilePath<-","candidatesFileName<-","build<-","mmRate<-","indelRate<-","readLength<-",
+              "quickScore",plotSV,fullScoreAndView)
 

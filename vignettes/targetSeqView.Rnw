@@ -7,6 +7,8 @@
 \usepackage[numbers]{natbib}
 \usepackage{color}
 \usepackage[margin=1in]{geometry}
+\usepackage{setspace}
+\bibliographystyle{plain}
 
 \newcommand{\scscst}{\scriptscriptstyle}
 \newcommand{\scst}{\scriptstyle}
@@ -15,117 +17,207 @@
 \newcommand{\Robject}[1]{\texttt{#1}}
 \newcommand{\Rclass}[1]{\texttt{#1}}
 \newcommand{\R}{\textsf{R}}
+\newcommand{\targetSeqView}{\Rpackage{targetSeqView}}
+\newcommand{\comm}[1]{{\color{blue}{\small #1}}}
 
-\title{viewing alignments for structural rearrangements}
+
+\title{viewing and scoring alignments for structural rearrangements}
 \author{Eitan Halper-Stromberg}
 
 \begin{document}
 
+
+
+
 \maketitle
 
 <<<setup, echo=FALSE>>=
+    library(targetSeqView)
     options(width=70)
-topdf <- function(){
-    Sweave("targetSeqView.Rnw")
-    tools::texi2pdf("targetSeqView.tex")
-    }
 @
 
 \begin{abstract}
 This package is designed to evaluate structural rearrangment calls from a candidate list, the output for tools such as
-HYDRA,GASV,VariationHunter, etc. The user should have a text file with one row per candidate structural rearrangment. For each
-candidate rearrangement, readpairs from the two loci will be read in and realigned three different ways. One of these realignments
-supports the structural variant, with readpairs realigned to a sequence representing the rearranged sequence (the sequence of the two
-loci concatenated together). The other two realignments support no structural rearrangement, with readpairs realigned to the two
-sequences representing contiguous fragments of the reference genome taken from each of the two loci.
+HYDRA \cite{Quinlan2010},GASV \cite{Sindi2009},VariationHunter \cite{Hormozdiari2010}, etc. The user should have a text file with one row per candidate structural rearrangment. For each
+candidate rearrangement, read-pairs from the two loci will be read in from a bam file and realigned three different ways.
+One of these realignments supports the structural variant, with readpairs realigned to a sequence representing the rearranged
+sequence (the sequence of the two loci concatenated together). The other two realignments support no structural rearrangement,
+with readpairs realigned to the two sequences representing contiguous fragments of the reference genome taken from each of the two loci.
 \end{abstract}
 
-\section{Simple Usage}
+<<pkgs,eval=TRUE>>=
 
-<<pkgs>>=
-library(targetSeqView)
 @
 
-<<pkgs2>>=
-library(grid)
-@
+\section{Quick Start Example}
+We start with a text file containing 20 candidate deletion junctions and the bam file containing our read alignments from a whole
+genome sequencing experiment (for the purposes of this vignette the bam file contains only reads aligning within the regions that we will
+interrogate). The text file contains the loci allegedely involved in each deletion, one deletion per row. For each row we will load
+reads aligning to the two loci involved in the alleged deletion from our bam file, realign these reads, and calculate our
+likelihood score.
 
-\subsection*{Perform realignment on 2 candidates that failed to validate}
-Our text file indicates the loci allegedely involved in two structural variants, one structural variant per row. For each row we will load
-reads aligning to the two loci involved in the structural variant from our bam file, realign these reads, calculate our
-likelihood score, and visualize the realignments. These particular structural variants failed PCR validation This will become evident
-once we view the realignments (we will do this for the one of the structural variants) and when we inspect the likelihood scores (we will
-compare these to the likelihood scores from candidate structural variants that passed PCR validation)
-
-<<failed2validate>>=
+<<instantiateDel,eval=TRUE>>=
 path <- system.file("extdata", package="targetSeqView")
 
+## This method utilizes the foreach package for parallelization, set nodes to however many cpus are
+## available.
 nodes=1
 registerDoMC(nodes)
-filename=file.path(path,"twoSVJunctionsFailed.txt")
-retfail=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
-estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
-## The likelihood scores for the events failing validation
-print(retfail[[2]])
-@
-\subsection*{View the 3 realignment configurations for one of these failing events}
-<<failed2validatefig1,fig=TRUE>>=
-p1=formatPlot(retfail[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant')
-p2=formatPlot(retfail[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant')
-p3=formatPlot(retfail[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant')
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(3, 1)))
-print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
-print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
-print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
+
+## create an instance of the candidates class
+candidateDels<-new('candidates')
+## set the path where bam files are located (if not in the currect working directory)
+bamFilePath(candidateDels)<-path
+## set the name of the text file containing candidate SVs (full path if not in the working directory)
+candidatesFileName(candidateDels)<-file.path(path,'wholeGenomeDeletionCandidates.txt')
+## set the build of the (human) genome
+build(candidateDels) <- 'hg19'
+## set the read length
+readLength(candidateDels) <- 101
+## set the mismatch rate for each position along the read length
+mmRate(candidateDels) <- precomputedWholeGenome101bpMMRate()
+## set the indel rate for reach position along the read length
+indelRate(candidateDels) <- precomputedWholeGenome101bpIndelRate()
 @
 
-\subsection*{Explanation of Pictures}
-The top picture shows read pairs aligning to the two loci allegedly involved in the structural variant. This alignment supports the
-existence of a structural variant as each paired end has one end aligned to the left locus and one end aligned to the right locus. There
-appear to be 4 snps identified consistently by the reads in the locus on the left side of the top picture. The picture in the middle
-represents the same read pairs as in the top picture aligned only to locus on the right side of the top picture. The absence of white space
-between some read pairs indicates paired ends with overlapping alignments, i.e fragments that are shorter than 200 bp. The read ends on
-the left of the middle picture indicate 4 snps and one indel. The similarlity in alignment qualities between the alignment supporting the
-structural variant and one of the two alignments supporting no structural variant is an indication that this is a false positive.
-
-
-\subsection*{Perform realignment on 2 candidates that passed validation}
-<<passedvalidation>>=
-filename=file.path(path,"twoSVJunctionsPassed.txt")
-retpass=ViewAndScore(filename=filename,bamFilePath=path,estimateIndelRate=FALSE,
-estimateMmRate=FALSE,getReadLength=FALSE,build="hg19",verbose=TRUE)
-## The likelihood scores for the events passing validation:
-print(retpass[[2]])
+note: mismatch and indel rates may be calculated based upon reads from a bam file containing
+normal alignments, the bamFile argument should contain the full path with the bam name if the
+bam is not in the current directory. The following 3 lines are unevaluated in this vignette
+<<computeErrorRates,eval=FALSE>>=
+ normalBam <- 'Path/To/Normal/bamfile.bam'
+errorRates<-getErrorRate(normalBam)
+mmRate(candidateDels) <- errorRates[['mmRate']]
+indelRate(candidateDels) <- errorRates[['indelRate']]
 @
-If we compare the likeliood scores from the validated events to the unvalidated events we see that the validation event likelihoods
-are substantially greater
 
-\subsection*{View the 3 realignment configurations for one of these passing events}
-<<passedvalidatefig1,fig=TRUE>>=
-p1=formatPlot(retpass[[1]][[1]][[1]][[2]],title='Alignment supporting a structural variant',
-mismatchcolor='red')
-p2=formatPlot(retpass[[1]][[1]][[2]][[2]],title='Alignment supporting no structural variant',
-mismatchcolor='red')
-p3=formatPlot(retpass[[1]][[1]][[3]][[2]],title='Alignment supporting no structural variant',
-mismatchcolor='red')
-grid.newpage()
-pushViewport(viewport(layout = grid.layout(3, 1)))
-print(p1,vp = viewport(layout.pos.row = 1, layout.pos.col=1))
-print(p2,vp = viewport(layout.pos.row = 2, layout.pos.col=1))
-print(p3,vp = viewport(layout.pos.row = 3, layout.pos.col=1))
+We first obtain likelihood scores for candidates without performing full smith-waterman
+realignment on all reads for all 3 alignement configurations. We instead use alignment
+information in the cigar strings and md tags in our bam file to obtain mismatches and indels
+for the alignments supporting SVs. In addition, We forgo, for the moment, returning a
+data.frame formatted for our plot function. This should take a few (1-5) seconds per candidate
+<<quickscore,eval=TRUE>>=
+candidateDels<- quickScore(candidateDels,verbose=TRUE)
+## view values returned
+print(candidateDels@quickScore)
+### In this case we have validation data for these candidates
+indexOfvalidated <-1:10
+validated<-candidateDels@quickScore[indexOfvalidated]
+
+failedvalidation<-candidateDels@quickScore[-indexOfvalidated]
 @
-\subsection*{Explanation of Pictures}
-As with the earlier pictures, the top picture shows alignments support a structural variant while the middle and bottom
-pictures show alignments supporting no structural variant. The top picture shows read pairs with both ends aligning well
-to each of the two loci. The middle and bottom pictures have one read from each pair aligning well and one read aligning
-poorly (mismatches are all indicated in red here for clarity, a viewing option available in the formatPlot function). This
-pattern is indicative of a true structural rearrangement, as we are unable to make both pairs of the paired end reads align
-well to only one locus of the two involved in the junction.
+\subsection*{Figure \ref{fig:plotquickscore}: The distribution of those that validated and those that did not}
+
+<<plotquickscore,fig=TRUE,include=FALSE>>=
+boxplot(list(validated=validated,failed=failedvalidation,
+    all=candidateDels@quickScore),ylab='log likelihood score')
+@
+
+
+\begin{figure}[t]
+  \begin{center}
+  \includegraphics[width=\textwidth]{targetSeqView-plotquickscore}
+  \caption{\label{fig:plotquickscore} Distribution of 20 candidate deletions taken from a whole-genome sequencing dataset, broken down
+by validation status}
+  \end{center}
+\end{figure}
+
+
+
+\section{Scoring and Viewing}
+In this section we will view read alignments at the junctions of 3 candidate structural variants. We will use a sequencing dataset
+taken from a target-capture exerpiment. As with the last section, we start with a text file containing the candidate structural
+variants (in this case 1 inversion and 2 chromosomal translocations) and a bam file containing read alignments.
+<<instantiateSV,eval=TRUE>>=
+## create an instance of the candidates class
+candidateSVs<-new('candidates')
+bamFilePath(candidateSVs) <- path
+candidatesFileName(candidateSVs) <- file.path(path,'targetCaptureSVs.txt')
+build(candidateSVs) <- 'hg19'
+readLength(candidateSVs) <- 100
+mmRate(candidateSVs) <- precomputedTargetCapture100bpMMRate()
+indelRate(candidateSVs) <- precomputedTargetCapture100bpIndelRate()
+
+## fullScoreAndview will perform full smith-waterman realignment for all reads in the 3
+## configurations. In addition, if the input text file contains a SplitsSample column,
+## the function will look for split-reads within the bam file specified by the column 'SplitsSample'
+candidateSVs<-fullScoreAndView(candidateSVs,verbose=TRUE,findSplitReads=TRUE)
+@
+
+
+The scores for these 3 events:
+<<printscore>>=
+print(candidateSVs@fullScore)
+@
+
+\subsection*{Figure \ref{fig:negative}: A chromosomal translocation that failed to validate}
+PCR validation informs us that the first event is negative and the other two are positive.
+Let's View the negative (the flipLeftandRight argument is just a style preference, in this
+case putting the chr14 junction on the left and the chr15 junction on the right)
+<<plot1,fig=FALSE,eval=TRUE>>=
+plotSV(candidateSVs,indices=1,flipLeftandRight=TRUE,pdfname='fig1.pdf')
+@
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1\textwidth]{fig1.pdf}
+\caption{\label{fig:negative}A negative (i.e not real) chromosomal translocation. The top plot shows read-pair alignments
+supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.}
+
+\end{figure}
+
+
+
+\subsection*{Figure \ref{fig:positive1}: A validated inversion}
+Let's view the first positive. Read-pair alignments supporting the SV look good, read-pair
+alignments supporting contiguous fragments do not look good because in both contiguous fragment
+alignment pictures, one read from each pair has many mismatches/indels
+Figure \ref{fig:positive1})
+<<plot2,fig=FALSE,eval=TRUE>>=
+plotSV(candidateSVs,indices=2,pdfname='fig2.pdf')
+@
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1\textwidth]{fig2.pdf}
+\caption{\label{fig:positive1}A positive (i.e real) inversion. The top plot shows read-pair alignments
+supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.}
+
+\end{figure}
+
+
+
+\subsection*{Figure \ref{fig:positive2}: A validated chromosomal translocation}
+Lets view the second positive. Read-pair alignments supporting the SV look good, albeit for a
+different reason than the first positive. In this picture we have some reads aligning well to the
+chr14 side and their partners aligning across the junction of the SV (i.e split-reads). The
+split-reads align well to both sides. There are a few mismatches right at the junction for these
+split reads but otherwise they match the reference. The contiguous fragment alignments do not look
+good, as we would expect. Again, the flipLeftandRight option is a style preference, putting the
+chr14 junction on the left and the chr18 junction on the right.
+Figure \ref{fig:positive2}
+<<plot3,fig=FALSE,eval=TRUE>>=
+plotSV(candidateSVs,indices=3,flipLeftandRight=TRUE,pdfname='fig3.pdf',width=10)
+@
+
+
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=1\textwidth]{fig3.pdf}
+\caption{\label{fig:positive2} A positive (i.e real) chromosomal translocation. The top plot shows read-pair alignments
+supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.}
+
+\end{figure}
+
 
 
 <<sessionInfo,results=tex>>=
 toLatex(sessionInfo())
 @
+
+
+%%\section*{References}
+\bibliography{refs}
 
 \end{document}
