@@ -1,11 +1,3 @@
-% targetSeqView vignette 
-% Eitan Halper-Stromberg
-% 2013/08/27
-
-
-
-
-
 # Installation
 install directly from github
 
