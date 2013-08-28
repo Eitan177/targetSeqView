@@ -8,7 +8,7 @@ Description: View putative alignments for loci involved in structural rearrangem
 License: GPL (>= 2)
 LazyLoad: yes
 Depends: R (>= 2.14), foreach, Rsamtools, GenomicRanges,
-        Biostrings,IRanges, BSgenome, BSgenome.Hsapiens.UCSC.hg19, ggplot2, doMC, grid
+        Biostrings,IRanges, BSgenome, ggplot2, doMC, grid
 Ehhances: doMC
 Collate: targetSeqView_functions.R alignQuick.R alignViewFull.R
         getErrorRate.R ViewAndScoreFull.R doQuickScore.R formatPlot.R
