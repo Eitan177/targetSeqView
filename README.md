@@ -113,9 +113,7 @@ failedvalidation <- candidateDels@quickScore[-indexOfvalidated]
 boxplot(list(validated = validated, failed = failedvalidation, all = candidateDels@quickScore), 
     ylab = "log likelihood score")
 ```
-
-![Distribution of 20 candidate deletions taken from a whole-genome sequencing dataset, broken down by validation status](figure/graphics.png) 
-
+![Distribution of 20 candidate deletions taken from a whole-genome sequencing dataset, broken down by validation status](https://raw.github.com/Eitan177/targetSeqView/master/vignettes/boxplots1.png)
 
 # Scoring and Viewing
 
@@ -174,11 +172,7 @@ alignments supporting contiguous fragments also look good, especially for side 1
 plotSV(candidateSVs, indices = 1, flipLeftandRight = TRUE)
 ```
 
-![A negative (i.e not real) chromosomal translocation. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.](figure/graphics2.png) 
-
-```
-## .
-```
+![A negative (i.e not real) chromosomal translocation. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.](https://raw.github.com/Eitan177/targetSeqView/master/vignettes/negative1.png)
 
 
 Let's view the first positive. Read-pair alignments supporting the SV look good, read-pair
@@ -191,11 +185,8 @@ alignment pictures, one read from each pair has many mismatches/indels
 plotSV(candidateSVs, indices = 2)
 ```
 
-![A positive (i.e real) inversion. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences](figure/graphics3.png) 
+![A positive (i.e real) inversion. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences](https://raw.github.com/Eitan177/targetSeqView/master/vignettes/positive1.png) 
 
-```
-## .
-```
 
 
 Lets view the second positive. Read-pair alignments supporting the SV look good, albeit for a
@@ -212,12 +203,7 @@ chr14 junction on the left and the chr18 junction on the right.
 plotSV(candidateSVs, indices = 3, flipLeftandRight = TRUE)
 ```
 
-![A positive (i.e real) chromosomal translocation. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.](figure/graphics4.png) 
-
-```
-## .
-```
-
+![A positive (i.e real) chromosomal translocation. The top plot shows read-pair alignments supporting the SV and the bottom plots show read-pair alignments supporting contiguous sequences.](https://raw.github.com/Eitan177/targetSeqView/master/vignettes/positive2.png)
 
 
 ```r
