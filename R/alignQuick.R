@@ -47,6 +47,5 @@ function(events,dedup=TRUE,initialExpansion=0,refexpansion=400,
 
     }
 
-
     return(alignedall)
 }

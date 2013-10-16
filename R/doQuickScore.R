@@ -57,6 +57,5 @@ doQuickScore <-
         }else{
             names(likelihoodScores) <- seq_along(likelihoodScores)
         }
-
         return(likelihoodScores)
     }

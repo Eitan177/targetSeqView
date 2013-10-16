@@ -550,8 +550,8 @@ dfmake2 <-
             nocontradiction <- ((length(gaploc)==2 & !any(is.na(match(c('a.facing','c.back2back'),c(o,pairedo))))) |
             length(gaploc)==1 & (o==pairedo | pairedo==''))
 
-            if(doingSplits & nocontradiction &
-               (length(gaploc)==1 | (length(gaploc)==2 & !any(is.na(match(c(1,nrow(x)), c(start(gaploc),end(gaploc)))))))){
+            if(doingSplits & (length(rngsAlign)==1 | (nocontradiction &
+               (length(gaploc)==1 | (length(gaploc)==2 & !any(is.na(match(c(1,nrow(x)), c(start(gaploc),end(gaploc)))))))))){
                 o<-'d.split'
             }
 
@@ -726,148 +726,228 @@ withflankNs <-
     }
 
 ## add findSplitReadsOnly arg
-mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,filternames='',dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,pairlimit=2e3,bamFileSplits=NULL,MMsplits=15,didSplits=FALSE,genomeName,findSplitReadsOnly=FALSE,verbose=FALSE){
+mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,filternames='',dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,pairlimit=2e3,bamFileSplits=NULL,MMsplits=15,didSplits=FALSE,genomeName,findSplitReadsOnly=FALSE,doingContig=FALSE,verbose=FALSE){
+    dftailA<-dftailB<-bamnamesF<-bamnamesF2<-bamnamesR<-bamnamesR2<-alignF<-alignF2<-alignR<-alignR2<-refInd<-bamnamesUse2<-bamnamesUseSplits<-refInd2<-alignedformatted<-list()
+for(looptimes in 1:ifelse(doingContig,2,1)){
+    if(doingContig) {rngsAlignUse<-rngsAlign[looptimes]} else rngsAlignUse<-rngsAlign
+    ##print(doingContig);print(looptimes);print(rngsAlignUse)
 ### if findSplitReadsOnly and didSplits added
     if(findSplitReadsOnly==FALSE){
-     alignedformatted <- doAlignAndformatFull(bamFile=bamFile,rngsRead=rngsRead,rngsAlign=rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MM,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMat,pairlimit=pairlimit,
+     alignedformatted <- doAlignAndformatFull(bamFile=bamFile,rngsRead=rngsRead,rngsAlign=rngsAlignUse,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MM,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMat,pairlimit=pairlimit,
                                 gapOpeningArg=gapOpeningArg ,gapExtensionArg=gapExtensionArg,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove='',genomeName=genomeName,doingSplits=FALSE,pairedo='',findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
      if(length(alignedformatted)>0){
 
-    dftailA <- alignedformatted[[1]]
-    bamnamesF<-alignedformatted[[2]]
-    bamnamesR<-alignedformatted[[3]]
-    alignF<-alignedformatted[[4]]
-    alignR<-alignedformatted[[5]]
-     refInd<-alignedformatted[[6]]
-        bamnamesUse2 <- as.character(head(unique(dftailA$refname),-1))
-        Fkeep2 <- which(bamnamesF %in% bamnamesUse2)
-        Rkeep2 <- which(bamnamesR %in% bamnamesUse2)
-        alignF <- alignF[Fkeep2]
-        alignR <- alignR[Rkeep2]
-        bamnamesF <- bamnamesF[Fkeep2]
-        bamnamesR <- bamnamesR[Rkeep2]
+
+    dftailA[[looptimes]] <- alignedformatted[[1]]
+    bamnamesF[[looptimes]]<-alignedformatted[[2]]
+    bamnamesR[[looptimes]]<-alignedformatted[[3]]
+    alignF[[looptimes]]<-alignedformatted[[4]]
+    alignR[[looptimes]]<-alignedformatted[[5]]
+     refInd[[looptimes]]<-alignedformatted[[6]]
+        bamnamesUse2[[looptimes]] <- as.character(head(unique(dftailA[[looptimes]]$refname),-1))
+        Fkeep2 <- which(bamnamesF[[looptimes]] %in% bamnamesUse2[[looptimes]])
+        Rkeep2 <- which(bamnamesR[[looptimes]] %in% bamnamesUse2[[looptimes]])
+        alignF[[looptimes]] <- alignF[[looptimes]][Fkeep2]
+        alignR[[looptimes]] <- alignR[[looptimes]][Rkeep2]
+        bamnamesF[[looptimes]] <- bamnamesF[[looptimes]][Fkeep2]
+        bamnamesR[[looptimes]] <- bamnamesR[[looptimes]][Rkeep2]
     ## added for findSplitReadsOnly but now general purpose
-    if(length(bamnamesF)>0) names(bamnamesF) <- rep("F",length(bamnamesF))
-    if(length(bamnamesR)>0) names(bamnamesR) <- rep("R",length(bamnamesR))
-    names(bamnamesUse2)[bamnamesUse2 %in% bamnamesF]='F'
-    names(bamnamesUse2)[bamnamesUse2 %in% bamnamesR]='R'
-    
+    if(length(bamnamesF[[looptimes]])>0) names(bamnamesF[[looptimes]]) <- rep("F",length(bamnamesF[[looptimes]]))
+    if(length(bamnamesR[[looptimes]])>0) names(bamnamesR[[looptimes]]) <- rep("R",length(bamnamesR[[looptimes]]))
+    names(bamnamesUse2[[looptimes]])[bamnamesUse2[[looptimes]] %in% bamnamesF[[looptimes]]]='F'
+    names(bamnamesUse2[[looptimes]])[bamnamesUse2[[looptimes]] %in% bamnamesR[[looptimes]]]='R'
+
     ## end added for findSplitReadsOnly
-    browser()
-     pval<-getpvalFull(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate,indelRate)
+
+
 }else{
 
-    dftailA <-data.frame()
+    dftailA[[looptimes]] <-data.frame()
     pval<-rep(1,readLength)
-    bamnamesUse2 <- vector()
-    bamnamesF <-bamnamesR <-''
+    bamnamesUse2[[looptimes]] <- vector()
+    bamnamesF[[looptimes]] <-bamnamesR[[looptimes]] <-''
 }
  }else{ ### else for findSplitReadsOnly
-     bamnamesF<-bamnamesR<-''; dftailA <-data.frame();pval<-rep(1,readLength);bamnamesUse2<-vector()
+     bamnamesF[[looptimes]]<-bamnamesR[[looptimes]]<-''; dftailA[[looptimes]] <-data.frame();pval<-rep(1,readLength);bamnamesUse2[[looptimes]]<-vector();
  } ### added findSplitReadsOnly to if
-    if(findSplitReadsOnly==TRUE | (length(unique(dftailA$ypostail))<5 & !is.null(bamFileSplits) & findSplitReads==TRUE) | didSplits==TRUE){
+    if(findSplitReadsOnly==TRUE | (length(unique(dftailA[[looptimes]]$ypostail))<5 & !is.null(bamFileSplits) & findSplitReads==TRUE) | didSplits==TRUE){
         ##print(rngsAlign);
 
         substitutionMatSplits<-nucleotideSubstitutionMatrix(match = 5, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)]
 
-        pairedo<- ifelse(is.na(rownames(dftailA)[1]),'',rownames(dftailA)[1])
+        pairedo<- ifelse(is.na(rownames(dftailA[[looptimes]])[1]),'',rownames(dftailA[[looptimes]])[1])
 ### added findSplitReadsOnly and didSplits
 
-         alignedformattedSplits <-doAlignAndformatFull(bamFileSplits,rngsRead,rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
-                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove=c(bamnamesF,bamnamesR),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
+         alignedformattedSplits <-doAlignAndformatFull(bamFileSplits,rngsRead,rngsAlignUse,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
+                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,
+                                                       bamnamesRemove=c(bamnamesF[[looptimes]],bamnamesR[[looptimes]]),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
 ### added for findSplitReadsOnly
         if(length(alignedformattedSplits)==0 & findSplitReadsOnly){
-         alignedformattedSplits <-doAlignAndformatFull(bamFile,rngsRead,rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
-                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove=c(bamnamesF,bamnamesR),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
+         alignedformattedSplits <-doAlignAndformatFull(bamFile,rngsRead,rngsAlignUse,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
+                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,
+                                                       bamnamesRemove=c(bamnamesF[[looptimes]],bamnamesR[[looptimes]]),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
      }
 ### end added for findSplitReadsOnly
 
 
 
         if(length(alignedformattedSplits)>0){
-        dftailB<-alignedformattedSplits[[1]]
-        bamnamesF2<-alignedformattedSplits[[2]]
-        bamnamesR2<-alignedformattedSplits[[3]]
-        alignF2<-alignedformattedSplits[[4]]
-        alignR2<-alignedformattedSplits[[5]]
-        refInd2<-alignedformattedSplits[[6]]
-        bamnamesUseSplits <- as.character(head(unique(dftailB$refname),-1))
-        Fkeep2<-which(bamnamesF2 %in% bamnamesUseSplits)
-        Rkeep2<-which(bamnamesR2 %in% bamnamesUseSplits)
-        alignF2<- alignF2[Fkeep2]
-        alignR2<-alignR2[Rkeep2]
-        bamnamesF2<-bamnamesF2[Fkeep2]
-        bamnamesR2<-bamnamesR2[Rkeep2]
-        if(length(rngsAlign)==2){
-        bestSplitScoreInd<-which.max(c(score(alignF2),score(alignR2)))
-        splitUse<-(c(DNAStringSet(as.character(pattern(alignF2))),DNAStringSet(as.character(pattern(alignR2)))))[bestSplitScoreInd]
+
+        dftailB[[looptimes]]<-alignedformattedSplits[[1]]
+        bamnamesF2[[looptimes]]<-alignedformattedSplits[[2]]
+        bamnamesR2[[looptimes]]<-alignedformattedSplits[[3]]
+        alignF2[[looptimes]]<-alignedformattedSplits[[4]]
+        alignR2[[looptimes]]<-alignedformattedSplits[[5]]
+        refInd2[[looptimes]]<-alignedformattedSplits[[6]]
+        bamnamesUseSplits[[looptimes]]<- as.character(head(unique(dftailB[[looptimes]]$refname),-1))
+        Fkeep2<-which(bamnamesF2[[looptimes]] %in% bamnamesUseSplits[[looptimes]])
+        Rkeep2<-which(bamnamesR2[[looptimes]] %in% bamnamesUseSplits[[looptimes]])
+        alignF2[[looptimes]]<- alignF2[[looptimes]][Fkeep2]
+        alignR2[[looptimes]]<-alignR2[[looptimes]][Rkeep2]
+        bamnamesF2[[looptimes]]<-bamnamesF2[[looptimes]][Fkeep2]
+        bamnamesR2[[looptimes]]<-bamnamesR2[[looptimes]][Rkeep2]
+        if(length(rngsAlignUse)==2){
+        bestSplitScoreInd<-which.max(c(score(alignF2[[looptimes]]),score(alignR2[[looptimes]])))
+        splitUse<-(c(DNAStringSet(as.character(pattern(alignF2[[looptimes]]))),DNAStringSet(as.character(pattern(alignR2[[looptimes]])))))[bestSplitScoreInd]
         splitUse<-gsub('-','',as.character(splitUse))
-        names(splitUse)<-c(bamnamesF2,bamnamesR2)[bestSplitScoreInd]
+        names(splitUse)<-c(bamnamesF2[[looptimes]],bamnamesR2[[looptimes]])[bestSplitScoreInd]
         if(length(splitUse)==0) splitUse<-''
     }else splitUse<-''
 
-        pval2<-getpvalFull(bamnamesF2,bamnamesR2,alignF2,alignR2,readLength,refInd2,mmRate,indelRate)
-        pval<-pval*pval2
-        bamnamesUse2<-c(bamnamesUse2,bamnamesUseSplits)
+        #pval2<-getpvalFull(bamnamesF2,bamnamesR2,alignF2,alignR2,readLength,refInd2,mmRate,indelRate)
+        #pval<-pval*pval2
+        bamnamesUse2[[looptimes]]<-c(bamnamesUse2[[looptimes]],bamnamesUseSplits[[looptimes]])
         ## added code for findSplitReadsOnly but generally applicable
-        names(bamnamesUse2)[bamnamesUse2 %in% c(bamnamesF,bamnamesF2)]='F'
-        names(bamnamesUse2)[bamnamesUse2 %in% c(bamnamesR,bamnamesR2)]='R'
+        names(bamnamesUse2[[looptimes]])[bamnamesUse2[[looptimes]] %in% c(bamnamesF[[looptimes]],bamnamesF2[[looptimes]])]='F'
+        names(bamnamesUse2[[looptimes]])[bamnamesUse2[[looptimes]] %in% c(bamnamesR[[looptimes]],bamnamesR2[[looptimes]])]='R'
         ## added code for findSplitReadsOnly but generally applicable
-        if(length(bamnamesUse2)==0) bamnamesUse2 <- ''
+        if(length(bamnamesUse2[[looptimes]])==0) bamnamesUse2[[looptimes]] <- ''
 
-        dftailB$ypostail[dftailB$ypostail != -1]=dftailB$ypostail[dftailB$ypostail != -1]+suppressWarnings(max(c(0,max(dftailA$ypostail))))
-        dftailA <-unique(rbind(dftailA,dftailB))
+        dftailB[[looptimes]]$ypostail[dftailB[[looptimes]]$ypostail != -1]=dftailB[[looptimes]]$ypostail[dftailB[[looptimes]]$ypostail != -1]+
+            suppressWarnings(max(c(0,max(dftailA[[looptimes]]$ypostail))))
+        dftailA[[looptimes]] <-unique(rbind(dftailA[[looptimes]],dftailB[[looptimes]]))
     }
 #        dfs<-split(dftailA,dftailA$ypostail)
 
+
         didSplits<-TRUE
     }
+}
+    if(length(alignedformatted)>0) {
+        if(doingContig) pval<-getpvalFull(bamnamesF[[1]],bamnamesR[[1]],alignF[[1]],alignR[[1]],readLength,refInd[[1]],mmRate,indelRate,bamnamesF[[2]],bamnamesR[[2]],alignF[[2]],alignR[[2]],refInd[[2]],findSplitReadsOnly)
+        else pval<-getpvalFull(bamnamesF[[1]],bamnamesR[[1]],alignF[[1]],alignR[[1]],readLength,refInd[[1]],mmRate,indelRate,findSplitReadsOnly=findSplitReadsOnly)
+
+    }
+     if(didSplits){
+         if(length(alignedformattedSplits)>0){
+         if(doingContig) pval2<-getpvalFull(bamnamesF2[[1]],bamnamesR2[[1]],alignF2[[1]],alignR2[[1]],readLength,refInd2[[1]],mmRate,indelRate,bamnamesF2[[2]],bamnamesR2[[2]],alignF2[[2]],alignR2[[2]],refInd2[[2]],findSplitReadsOnly)
+         else pval2<-getpvalFull(bamnamesF2[[1]],bamnamesR2[[1]],alignF2[[1]],alignR2[[1]],readLength,refInd2[[1]],mmRate,indelRate,findSplitReadsOnly=findSplitReadsOnly)
+
+         pval<-pval*pval2
+     }
+     }
 
     if(exists('splitUse')==FALSE) splitUse<-''
 
-        result <- list(bamnames=bamnamesUse2,forplot=dftailA,pval=pval,didSplits=didSplits,splitRead=splitUse)
+result <- list(bamnames=bamnamesUse2[[1]],forplot=dftailA[[1]],pval=pval,didSplits=didSplits,splitRead=splitUse)
+if(doingContig) result <-list(result, list(bamnames=bamnamesUse2[[2]],forplot=dftailA[[2]],pval=pval,didSplits=didSplits,splitRead=splitUse))
+
+return(result)
 
 
+}
 
- }
-
-getpvalFull<-function(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate,indelRate){
+getpvalFull<-function(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate,indelRate,bamnamesF2=character(),bamnamesR2=character(),
+                      alignF2= PairwiseAlignments('A','A')[FALSE],alignR2=PairwiseAlignments('A','A')[FALSE],refInd2=matrix(),findSplitReadsOnly=FALSE){
         ## A little redundant
 
         forwardMtable <- table(mismatchTable(alignF)$PatternId)
                 reverseMtable <- table(mismatchTable(alignR)$PatternId)
+
+        forwardMtable2 <- table(mismatchTable(alignF2)$PatternId)
+                reverseMtable2 <- table(mismatchTable(alignR2)$PatternId)
+
                 allMismatchesF <- rep(0,length(alignF))
                 allMismatchesR <- rep(0,length(alignR))
-                allMismatchesF[as.numeric(names(forwardMtable))] <- forwardMtable
-                names(allMismatchesF) <- rep('F',length(allMismatchesF))
-                allMismatchesR[as.numeric(names(reverseMtable))] <- reverseMtable
+
+                allMismatchesF2 <- rep(0,length(alignF2))
+                allMismatchesR2 <- rep(0,length(alignR2))
+
+
+        allMismatchesF[as.numeric(names(forwardMtable))] <- forwardMtable
+        names(allMismatchesF) <- rep('F',length(allMismatchesF))
+        allMismatchesR[as.numeric(names(reverseMtable))] <- reverseMtable
         names(allMismatchesR)<-rep('R',length(allMismatchesR))
-                moreMism <- unlist(sapply(split(c(allMismatchesF,allMismatchesR),c(bamnamesF, bamnamesR)),
-                                         function(x){names(x)[which.max(x)]}))
+
+
+        allMismatchesF2[as.numeric(names(forwardMtable2))] <- forwardMtable2
+        names(allMismatchesF2) <- rep('F2',length(allMismatchesF2))
+        allMismatchesR2[as.numeric(names(reverseMtable2))] <- reverseMtable2
+        names(allMismatchesR2)<-rep('R2',length(allMismatchesR2))
+
+        if(findSplitReadsOnly){
+                moreMism <- unlist(sapply(split(c(allMismatchesF,allMismatchesR,allMismatchesF2,allMismatchesR2),c(bamnamesF, bamnamesR,
+                                                                                                                   bamnamesF2,bamnamesR2)),
+                                          function(x){names(x)[which.min(x)]}))
+            }else{
+                moreMism <- unlist(sapply(split(c(allMismatchesF,allMismatchesR,allMismatchesF2,allMismatchesR2),c(bamnamesF, bamnamesR,
+                                                                                                                   bamnamesF2,bamnamesR2)),
+                                          function(x){x1s<-x[names(x) %in% c('F','R')];
+                                                  x2s<-x[names(x) %in% c('F2','R2')];
+                                                  x1max<-x1s[which.max(x1s)];
+                                                  x2max<-x2s[which.max(x2s)];
+                                                  xs<-c(x1max,x2max);
+                                                  names(xs)[which.min(xs)]}))
+            }
+                
         alignFmm<-alignF[bamnamesF %in% names(moreMism)[moreMism=="F"]]
         bamnamesFmm<-bamnamesF[bamnamesF %in% names(moreMism)[moreMism=="F"]]
 
+        alignF2mm<-alignF2[bamnamesF2 %in% names(moreMism)[moreMism=="F2"]]
+        bamnamesF2mm<-bamnamesF2[bamnamesF2 %in% names(moreMism)[moreMism=="F2"]]
+
+
         tt<-table(start(subject(alignFmm)))
+        tt2<-table(start(subject(alignF2mm)))
         if(any(tt>1)) {
             torem<-which(start(subject(alignFmm)) %in% as.numeric(names(tt))[tt>1])[cumsum(tt[tt>1])]
             alignFmm<-alignFmm[!(1:length(alignFmm) %in% torem)]
             bamnamesFmm<-bamnamesFmm[!(1:length(bamnamesFmm) %in% torem)]
         }
+        if(any(tt2>1)) {
+            torem2<-which(start(subject(alignF2mm)) %in% as.numeric(names(tt2))[tt2>1])[cumsum(tt2[tt2>1])]
+            alignF2mm<-alignF2mm[!(1:length(alignF2mm) %in% torem2)]
+            bamnamesF2mm<-bamnamesF2mm[!(1:length(bamnamesF2mm) %in% torem2)]
+        }
+
         alignRmm<-alignR[bamnamesR %in% names(moreMism)[moreMism=="R"]]
         bamnamesRmm<-bamnamesR[bamnamesR %in% names(moreMism)[moreMism=="R"]]
+
+        alignR2mm<-alignR2[bamnamesR2 %in% names(moreMism)[moreMism=="R2"]]
+        bamnamesR2mm<-bamnamesR2[bamnamesR2 %in% names(moreMism)[moreMism=="R2"]]
+
         ttR<-table(start(subject(alignRmm)))
+        ttR2<-table(start(subject(alignR2mm)))
         if(any(ttR>1)) {
             torem<-which(start(subject(alignRmm)) %in% as.numeric(names(ttR))[ttR>1])[cumsum(ttR[ttR>1])]
             alignRmm<-alignRmm[!(1:length(alignRmm) %in% torem)]
             bamnamesRmm<-bamnamesRmm[!(1:length(bamnamesRmm) %in% torem)]
         }
+        if(any(ttR2>1)) {
+            torem2<-which(start(subject(alignR2mm)) %in% as.numeric(names(ttR2))[ttR2>1])[cumsum(ttR2[ttR2>1])]
+            alignR2mm<-alignR2mm[!(1:length(alignR2mm) %in% torem2)]
+            bamnamesR2mm<-bamnamesR2mm[!(1:length(bamnamesR2mm) %in% torem2)]
+        }
 
 
         ### new
-        allMismatches<-getMismatchFull(readLength,alignFmm,alignRmm)
-        allIndel<-getindelsFull(readLength,alignFmm,alignRmm,refInd)
+        allMismatches1<-getMismatchFull(readLength,alignFmm,alignRmm)
+        allMismatches2<-getMismatchFull(readLength,alignF2mm,alignR2mm)
+        allIndel1<-getindelsFull(readLength,alignFmm,alignRmm,refInd)
+        allIndel2<-getindelsFull(readLength,alignF2mm,alignR2mm,refInd2)
         ##allIndelRemInd<-allIndel[[1]]
-        allIndel<-allIndel[[1]]
+        allIndel<-allIndel1[[1]]+allIndel2[[1]]
+        allMismatches<-allMismatches1+allMismatches2
         ##browser()
         ###
 
@@ -931,6 +1011,7 @@ doAlignAndformatFull <-
 
         if(bamnamesRemove[1] != ''){
             ##print(bamnamesRemove)
+
             indrem<-which(bamnames %in% bamnamesRemove)
             if(length(indrem>0)){
                 bamseqs <-bamseqs[-indrem]
@@ -1038,10 +1119,13 @@ doAlignAndformatFull <-
             Fkeep <- which(rowSums(letterFrequency(trimF,c('A','C','T','G')))<MMuse)## & rowSums(letterFrequency(trimF,c('M')))>(.6*readLength))# | score(alignF)>0)
             Rkeep <- which(rowSums(letterFrequency(trimR,c('A','C','T','G')))<MMuse)## & rowSums(letterFrequency(trimR,c('M')))>(.6*readLength))# | score(alignR)>0)
             bamnamesInit <- (c(bamnamesF[Fkeep],bamnamesR[Rkeep]))
-
             if(length(rngsAlign)>1 &  bamnamesRemove[1]==''){
+                if(length(bamnamesInit)>0){
                 doloop<-all(aggregate(refM[c(start(alignF[Fkeep]@subject),start(alignR[Rkeep]@subject))],by=list(bamnamesInit),
                                     function(x){length(unique(x))})[,2]<2)
+            }else{
+                doloop<-TRUE
+            }
             }else{
                 doloop<-FALSE
             }
@@ -1053,6 +1137,7 @@ doAlignAndformatFull <-
                 Rkeep <- which(bamnamesR %in% bamnamesInit)
             }
         }else if(filterbyname){
+
             ## added code for findSplitReadsOnly
             Fkeep <- which(bamnamesF %in% filternames[!findSplitReadsOnly | names(filternames)=='F'])
             Rkeep <- which(bamnamesR %in% filternames[!findSplitReadsOnly | names(filternames)=='R'])

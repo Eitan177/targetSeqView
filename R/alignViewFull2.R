@@ -54,7 +54,7 @@ function(events,filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,allowedMM=6,initi
 #        print(c(rngsAlign,secondrngsAlign,thirdrngsAlign))
         aligned1=mainAlignViewFull(bamFile,rngs,rngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=TRUE,MM=allowedMM[ii],
         indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii], gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,MMsplits=MMsplits,didSplits=FALSE,
-        genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,doingContig=FALSE,verbose=verbose)
         bamnames=aligned1[[1]]
 
         if(verbose) print(paste('primary alignment for event',ii,'done'))
@@ -62,22 +62,23 @@ function(events,filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,allowedMM=6,initi
 
         ## added for findSplitReadsOnly
         if(findSplitReadsOnly & length(bamnames)==0){
-            aligned2<-aligned3<-aligned1
+            alignedcontigs<-list()
+            alignedcontigs[[1]]<-alignedcontigs[[2]]<-aligned1
         }else{
-
-        aligned2=mainAlignViewFull(bamFile,rngs,secondrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,filterbyname=TRUE,
-        filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii],
-        gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
-        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+            contigrngsAlign<-c(secondrngsAlign,thirdrngsAlign)
+        alignedcontigs=mainAlignViewFull(bamFile,rngs,contigrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,
+            filterbyname=TRUE,filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,
+            gapOpeningArg = gapOpeningArg[ii],gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
+        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,doingContig=TRUE,verbose=verbose)
         if(verbose) print(paste('secondary alignment (1 of 2) for event',ii,'done'))
 
-        aligned3=mainAlignViewFull(bamFile,rngs,thirdrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,filterbyname=TRUE,
-        filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii],
-        gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
-        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        #aligned3=mainAlignViewFull(bamFile,rngs,thirdrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,filterbyname=TRUE,
+        #filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii],
+        #gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
+        #didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
         if(verbose) print(paste('secondary alignment (2 of 2) for event',ii,'done'))
     }
-        aligned123=list(aligned1,aligned2,aligned3)
+        aligned123=list(aligned1,alignedcontigs[[1]],alignedcontigs[[2]])
 
         return(aligned123)
 

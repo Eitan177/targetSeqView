@@ -42,8 +42,8 @@ ViewAndScoreFull <-
         if(nrow(events)==1){
             newscore <- Inf; jj <- 1
             cc <- cbind(alignedall[[1]][[3]],alignedall[[2]][[3]],alignedall[[3]][[3]])
-            likelis <- alignedall[[1]][[3]]/
-                apply(cbind(alignedall[[2]][[3]],alignedall[[3]][[3]]),1,max)
+            likelis <- alignedall[[1]][[3]]/alignedall[[2]][[3]]
+                ##apply(cbind(alignedall[[2]][[3]],alignedall[[3]][[3]]),1,max)
             while(newscore %in% c(Inf,NaN)){
                 newscore <- sum(log(likelis,10))
                 likelis <- likelis[-which.max(likelis)]
@@ -53,15 +53,15 @@ ViewAndScoreFull <-
             forplot[[1]] <-list(alignedall[[1]][[2]],alignedall[[2]][[2]],alignedall[[3]][[2]])
             splitReads=alignedall[[1]][[5]]
         }else{
-    likelihoodScores=foreach(jj=1:length(alignedall),.combine='c',.multicombine=TRUE) %dopar% {
+            likelihoodScores=foreach(jj=1:length(alignedall),.combine='c',.multicombine=TRUE) %dopar% {
 
 ##            for(jj in 1:length(alignedall)){
                 newscore <- Inf
                 ## if reads <10^-10 max across all loci are removed, roc is a bit better
-                cc <- cbind(alignedall[[jj]][[1]][[3]],alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]])
+                ##cc <- cbind(alignedall[[jj]][[1]][[3]],alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]])
                 ##                rem=which(apply(cc,1,max)<10^-6)
-                likelis <- alignedall[[jj]][[1]][[3]]/
-                    apply(cbind(alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]]),1,max)
+                likelis <- alignedall[[jj]][[1]][[3]]/alignedall[[jj]][[2]][[3]]
+                    ##apply(cbind(alignedall[[jj]][[2]][[3]],alignedall[[jj]][[3]][[3]]),1,max)
                 ##                if(length(rem)>0) likelis=likelis[-rem]
                 while(newscore %in% c(Inf,NaN)){
                     newscore <- sum(log(likelis,10))
