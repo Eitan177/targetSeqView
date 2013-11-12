@@ -6,8 +6,7 @@ setClass("candidates", representation(bamFilePath = "character",
                                       indelRate = "numeric",
                                       quickScore = "numeric",
                                       fullScore = "numeric",
-                                      forplot = "list",
-                                      splitReads= "character"))
+                                      forplot = "list"))
 
 setGeneric("bamFilePath", function(object) standardGeneric("bamFilePath"))
 setGeneric("bamFilePath<-", function(object,value) standardGeneric("bamFilePath<-"))
@@ -50,7 +49,6 @@ setMethod("quickScore","candidates", function(object,...){
                                   bamFilePath=object@bamFilePath,
                                   mmRate=object@mmRate,
                                   indelRate=object@indelRate,
-                                  build=object@build,
                                   ...)
     object
 })
@@ -60,27 +58,24 @@ setMethod("quickScore","candidates", function(object,...){
  setGeneric("fullScoreAndView", function(object,...) standardGeneric("fullScoreAndView"))
 # setGeneric("fullScoreAndView<-", function(object,value) standardGeneric("fullScoreAndView<-"))
  setMethod("fullScoreAndView","candidates", function(object,...){
-
      retvals <-ViewAndScoreFull(filename=object@candidatesFileName,
                                   readLength=object@readLength,
                                   bamFilePath=object@bamFilePath,
                                   mmRate=object@mmRate,
                                   indelRate=object@indelRate,
-                                build=object@build,
                                 ...)
 
      object@forplot <- retvals[['forplot']]
      object@fullScore <- retvals[['score']]
-     object@splitReads <- retvals[['splitReads']]
      object
  })
 
 
 
  setGeneric("plotSV", function(object,indices=0,junctionsToShow=c('sv','side1','side2','all')[4],pdfname='',
-                               width=8,height=7,config='TwoRows',newDevice=FALSE,...) standardGeneric("plotSV"))
+                               width=8,height=7,config='TwoRows',...) standardGeneric("plotSV"))
  setMethod("plotSV","candidates", function(object,indices=0,junctionsToShow=c('sv','side1','side2','all')[4],pdfname='',width=8,height=7,
-                                           config='TwoRows',newDevice=FALSE,...){
+                                           config='TwoRows',...){
      if(indices[1]==0) indices <- seq_along(object@forplot)
 
      if(pdfname != '') pdf(pdfname,width=width,height=height)
@@ -98,7 +93,7 @@ setMethod("quickScore","candidates", function(object,...){
 
  }
 
-     if(pdfname=='' & newDevice==TRUE) dev.new()
+     if(pdfname=='') dev.new()
 
      if(junctionsToShow=='sv') print(svPlot[[1]])
      else if (junctionsToShow=='side1') print(contig1Plot[[1]])

@@ -3,7 +3,7 @@ function(events,dedup=TRUE,initialExpansion=0,refexpansion=400,
          indelRate,mmRate,readLength,pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,
          substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',
          bsbuildprefix="BSgenome.Hsapiens.UCSC.",
-         rngsAlign=GRanges(),conservativeContigAlign=FALSE,validChr=c(1:22,'X','Y','M'),verbose=FALSE){
+         rngsAlign=GRanges(),conservativeContigAlign=FALSE,validChr=c(1:22,'X','Y','M'),returnIsizes=FALSE,findSplitReads=FALSE,verbose=FALSE){
 
     do.call(library, list(paste(bsbuildprefix, build, sep='')))
     ##pkgname <- paste("BSgenome.Hsapiens.UCSC.", build, sep="")
@@ -23,6 +23,7 @@ function(events,dedup=TRUE,initialExpansion=0,refexpansion=400,
 
 
         bamFile=events[ii,'Sample']
+        if('SplitsSample' %in% colnames(events)) bamFileSplits=events[ii,'SplitsSample'] else bamFileSplits <- NULL
 
         header<-unlist(scanBamHeader(bamFile))
         if(length(grep(paste('SN',events[ii,'Chr1'],sep=':'),header))>0) chrsub <- ''
@@ -40,7 +41,8 @@ function(events,dedup=TRUE,initialExpansion=0,refexpansion=400,
         }else{
         aligned=mainAlignQuick(bamFile,rngs,dedup=dedup,
         indelRate=indelRate,mmRate=mmRate,typeArg="global-local",readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii], gapExtensionArg = gapExtensionArg[ii],
-        substitutionMat=substitutionMat[[ii]],conservativeContigAlign=conservativeContigAlign,genomeName=genomeName,verbose=verbose)
+        substitutionMat=substitutionMat[[ii]],conservativeContigAlign=conservativeContigAlign,genomeName=genomeName,
+        returnIsizes=returnIsizes,bamFileSplits=bamFileSplits,findSplitReads=findSplitReads,verbose=verbose)
     }
 
         return(aligned)

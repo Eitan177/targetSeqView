@@ -1,9 +1,9 @@
 ViewAndScoreFull <-
     function(filename,initialExpansion=500,refexpansion=400,mmRate,indelRate,
-             bamFilePath='',allowedMM=6,gapOpeningArg = -4,readLength,
-             filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,eventsToEval=Inf,MMsplits=15,pairlimit=2e3,
+             normalBam='',bamFilePath='',allowedMM=6,gapOpeningArg = -4,readLength,
+             filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,eventsToEval=Inf,MMsplits=15,
              gapExtensionArg = -1,substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],
-             rngsAlign=GRanges(),build='hg19',bsbuildprefix="BSgenome.Hsapiens.UCSC.",validChr=c(1:22,'X','Y','M'),findSplitReadsOnly=FALSE,verbose=FALSE){
+             rngsAlign=GRanges(),build='hg19',bsbuildprefix="BSgenome.Hsapiens.UCSC.",validChr=c(1:22,'X','Y','M'),verbose=FALSE){
 
 
         alignedall <- list()
@@ -25,13 +25,12 @@ ViewAndScoreFull <-
         }
 
 
-        alignedall <- alignViewFull(events,filtsings=filtsings,findSplitReads=findSplitReads,dedup=dedup,initialExpansion=initialExpansion,refexpansion=refexpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,allowedMM=allowedMM,
-                                    gapOpeningArg = gapOpeningArg, gapExtensionArg = gapExtensionArg,substitutionMat=substitutionMat,build=build,rngsAlign=rngsAlign,MMsplits=MMsplits,bsbuildprefix=bsbuildprefix,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        alignedall <- alignViewFull(events,filtsings=filtsings,findSplitReads=findSplitReads,dedup=dedup,initialExpansion=initialExpansion,refexpansion=refexpansion,indelRate=indelRate,mmRate=mmRate,readLength=readLength,allowedMM=allowedMM,gapOpeningArg = gapOpeningArg, gapExtensionArg = gapExtensionArg,substitutionMat=substitutionMat,build=build,rngsAlign=rngsAlign,MMsplits=MMsplits,bsbuildprefix=bsbuildprefix,verbose=verbose)
 
-## changed c(3,4) to c(3,5) below for findSplitReadsOnly
+
         if(nrow(events) > 1){
         while(is.list(alignedall) & length(alignedall) != nrow(events)){
-            formatted<-unlist(lapply((lapply(alignedall,function(x){c(length(x),length(x[[1]]))})),function(x){all(x==c(3,5))}))
+            formatted<-unlist(lapply((lapply(alignedall,function(x){c(length(x),length(x[[1]]))})),function(x){all(x==c(3,4))}))
          alignedall <-   c(do.call(c,alignedall[!formatted]),alignedall[formatted])
          if(verbose) print('simplified list object from foreach loop')
         }
@@ -51,7 +50,6 @@ ViewAndScoreFull <-
             likelihoodScores[jj] <- newscore
             forplot[[1]] <-list()
             forplot[[1]] <-list(alignedall[[1]][[2]],alignedall[[2]][[2]],alignedall[[3]][[2]])
-            splitReads=alignedall[[1]][[5]]
         }else{
     likelihoodScores=foreach(jj=1:length(alignedall),.combine='c',.multicombine=TRUE) %dopar% {
 
@@ -72,8 +70,7 @@ ViewAndScoreFull <-
                 newscore
             }
     forplot=lapply(alignedall,function(x){list(x[[1]][[2]],x[[2]][[2]],x[[3]][[2]])})
-    splitReads=sapply(alignedall,function(x){x[[1]][[5]]})
 }
-assign("alignedall",list(forplot=forplot,score=likelihoodScores,splitReads=splitReads),envir=.GlobalEnv)
-        return(list(forplot=forplot,score=likelihoodScores,splitReads=splitReads))
+
+        return(list(forplot=forplot,score=likelihoodScores))
     }

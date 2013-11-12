@@ -8,8 +8,7 @@
 parseCigarAndMD <- function (md,cigar){
 
 md[is.na(md)]="0"
-## removed plus from [ACGT]+
-mds<- gsub('[ ]$','',gsub('[ ]+',' ',gsub("([\\^]*[ACGT])[0]*", " \\1 ", md)))
+mds<- gsub('[ ]$','',gsub('[ ]+',' ',gsub("([\\^]*[ACGT]+)[0]*", " \\1 ", md)))
 
 removeMs<-gsub('S.+','',cigar)
 softclipped<-rep(0,length(removeMs))
@@ -26,8 +25,8 @@ firstM <- as.numeric(gsub('.+[A-Z]','',gsub('M.*$','',cigar)))
 if(length(grep('[ID]',cigar))==0) {
     bonifiedInsOrDels <- rep(0,length(cigar))
 }else{
-bonifiedInsOrDels<-unlist(lapply(vmatchPattern('D',cigar),length))+
-        unlist(lapply(vmatchPattern('I',cigar),length))
+bonifiedInsOrDels<-unlist(IRanges::lapply(vmatchPattern('D',cigar),length))+
+        unlist(IRanges::lapply(vmatchPattern('I',cigar),length))
 }
 
 
@@ -45,7 +44,6 @@ pp<-paste(mds,collapse=' ')
 ss<-strsplit(pp,'[ ]+')[[1]]
 ss[grep('\\^',ss)]=nchar(grep('\\^',ss,value=TRUE))-1
 ss[ss %in% c('A','C','G','T')]=.99
-
     tosee <- aggregate(ss,by=list(toag),function(x){cs=cumsum(as.numeric(as.character(x)));cs[x==.99]},simplify=FALSE)
 
 if(is.matrix(tosee[,2])) agpos <- do.call(c,apply(tosee[,2],1,list))
@@ -58,23 +56,35 @@ return(list(mmpositions,indels,softclip=cbind(softclipped,softclippedEnd)))
 
 }
 
-getMismatchQuick<-function(readLength,alignFmm,alignRmm,softclippedseq){
+getMismatchQuick<-function(readLength,alignFmm,alignRmm,softclippedseqF,softclippedseqR){
 
         mmtableF<-mismatchTable(alignFmm)
         mmtableF$PatternStart[mmtableF$PatternStart > readLength] <- readLength
-        softclippedF<-softclippedseq[mmtableF$PatternId,,drop=FALSE]
+        ## 10/24 comment out
+	if(!is.null(nrow(softclippedseqF))){
+        softclippedF<-softclippedseqF[mmtableF$PatternId,,drop=FALSE]
+	}
 
         ## we don't want to penalize a read for having a mismatch in our realignment in an area that was softclipped in the bam
+        ## 10/24 comment out
+	if(!is.null(nrow(softclippedseqF))){
         mmtableF<-mmtableF[mmtableF$PatternStart > softclippedF[,'softclipped'] & mmtableF$PatternStart < softclippedF[,'softclippedEnd'],]
+	}
         forwardMtable <- table(mmtableF$PatternStart)
 
         mmtableR<-mismatchTable(alignRmm)
         mmtableR$PatternStart[mmtableR$PatternStart > readLength] <- readLength
         mmtableR$correctedPStart<-readLength-mmtableR$PatternStart+1
-        softclippedR<-softclippedseq[mmtableR$PatternId,,drop=FALSE]
+        ## 10/24 comment out
+	if(!is.null(nrow(softclippedseqR))){
+        softclippedR<-softclippedseqR[mmtableR$PatternId,,drop=FALSE]
+	}
 
         ## we don't want to penalize a read for having a mismatch in our realignment in an area that was softclipped in the bam
+        ## 10/24 comment out
+	if(!is.null(nrow(softclippedseqR))){
         mmtableR<-mmtableR[mmtableR$PatternStart > softclippedR[,'softclipped'] & mmtableR$PatternStart < softclippedR[,'softclippedEnd'],]
+	}
         reverseMtable <- table(mmtableR$correctedPStart)
 
         allMismatches <- rep(0,readLength)
@@ -86,24 +96,24 @@ getMismatchQuick<-function(readLength,alignFmm,alignRmm,softclippedseq){
     }
 
 
-getindelsQuick<-function(readLength,alignFmm,alignRmm,softclippedseq){
+getindelsQuick<-function(readLength,alignFmm,alignRmm,softclippedseqF,softclippedseqR){
 
         allIndel <- rep(0,readLength)
 
-        insertionsF<-do.call(c,mapply(function(x,y){setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
+        insertionsF<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
         if(is.null(insertionsF)) insertionsF <- IRanges()
         width(insertionsF)[width(insertionsF)>25]=25
 
-        insertionsR<-do.call(c,mapply(function(x,y){setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
+        insertionsR<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
 
         if(is.null(insertionsR)) insertionsR <- IRanges()
         width(insertionsR)[width(insertionsR)>25]=25
         insertionInds<-unlist(apply(cbind(start(insertionsF),(end(insertionsF))),1,function(x){x[1]:x[2]}))
         ### just for deletion positions
 
-        deletionInds<-unlist(apply(cbind(start(unlist(deletion(alignFmm))),end(unlist(deletion(alignFmm)))),1,function(x){x[1]:x[2]}))
+        deletionInds<-unlist(apply(cbind(start(GenomicRanges::unlist(deletion(alignFmm))),end(GenomicRanges::unlist(deletion(alignFmm)))),1,function(x){x[1]:x[2]}))
 
-        delf<-unlist(deletion(alignFmm))
+        delf<-GenomicRanges::unlist(deletion(alignFmm))
 ##        delf<-delf[refInd[start(delf)] == refInd[end(delf)]]
 
         forwardIndeltable<-table(c(insertionInds,start(delf)))
@@ -115,8 +125,8 @@ getindelsQuick<-function(readLength,alignFmm,alignRmm,softclippedseq){
 
         insertionIndsR<-unlist(apply(cbind(start(insertionsR),(end(insertionsR))),1,function(x){x[1]:x[2]}))
 ## just for deletions positions
-        deletionIndsR<-unlist(apply(cbind(start(unlist(deletion(alignRmm))),(end(unlist(deletion(alignRmm))))),1,function(x){x[1]:x[2]}))
-        reverseIndeltable<-table(readLength-c(insertionIndsR,start(unlist(deletion(alignRmm))))+1)
+        deletionIndsR<-unlist(apply(cbind(start(GenomicRanges::unlist(deletion(alignRmm))),(end(GenomicRanges::unlist(deletion(alignRmm))))),1,function(x){x[1]:x[2]}))
+        reverseIndeltable<-table(readLength-c(insertionIndsR,start(GenomicRanges::unlist(deletion(alignRmm))))+1)
 ## just for deletions positions
         reverseIndeltableWdel<-table(readLength-c(insertionIndsR,deletionIndsR)+1)
         reverseIndeltableWdel<-reverseIndeltableWdel[as.numeric(names(reverseIndeltableWdel)) %in% 1:readLength]
@@ -132,13 +142,14 @@ allindelsWdel[as.numeric(names(reverseIndeltableWdel))]<- allindelsWdel[as.numer
         return(list(allIndel,allindelsWdel))
     }
 
+## 10/24 added chunks argument
 getRandomBamRecords <-
-    function(bamFile,reverseC=TRUE,recnum=1e5){
+    function(bamFile,reverseC=TRUE,recnum=1e5,chunks=100e3){
         bamheader<-scanBamHeader(bamFile)[[1]]
         chr<- names(bamheader$targets)
         chrlen <-bamheader$targets
         rngsCheck<-unlist(GRangesList(sapply(1:length(chr),function(x){
-            GRanges(seqnames=chr[x],ranges= breakInChunks(chrlen[x],100e3))})))
+            GRanges(seqnames=chr[x],ranges= breakInChunks(chrlen[x],chunks))})))
             ind <- nrecs<-0
             para <- ScanBamParam()
         while(nrecs < recnum){
@@ -162,6 +173,8 @@ getBam <-
 
         bam <- scanBam(bamFile, param=para)
 
+        ##allrn<-get('allrngs',envir=.GlobalEnv)
+        ##assign('allrngs',c(allrn,rngs),envir=.GlobalEnv)
 
         b1ind<-grep(start(rngs)[1],names(bam))
         b2ind<-(1:2)[-b1ind]
@@ -172,6 +185,8 @@ getBam <-
 
         keep<-which(!(is.na(bam1$mpos)))
         bam1 <- lapply(bam1,function(x) {x[keep]})
+        keep2<-which(!(is.na(bam2$mpos)))
+        bam2 <- lapply(bam2,function(x) {x[keep2]})
 
         if(length(bam1$seq)==0) return (list())
 
@@ -192,7 +207,11 @@ getBam <-
         }else{
         bam1filt<-lapply(bam1,function(x){x[ovskeep]})
         keep2<-match(bam1filt$qname,bam2$qname)
-        bam2filt<-lapply(bam2,function(x){x[keep2]})
+        ## 10/24 added is.na ###
+        if(all(is.na(keep2))) return(list())
+        if(any(is.na(keep2))) bam1filt<-lapply(bam1filt,function(x){x[!is.na(keep2)]})
+        bam2filt<-lapply(bam2,function(x){x[na.omit(keep2)]})
+        ## end 10/24 additions ##
     }
 
         return(list(bam1filt,bam2filt))
@@ -216,29 +235,49 @@ precomputedWholeGenome101bpIndelRate <-
         return(c(0.00022,0.00039,0.00046,0.00039,0.00043,0.00044,0.00052,0.00046,0.00036,0.00049,5e-04,0.00043,0.00045,0.00053,0.00048,0.00036,0.00043,0.00032,0.00036,0.00039,0.00038,0.00042,0.00038,0.00038,0.00038,0.00048,0.00041,0.00046,0.00038,0.00031,0.00041,0.00036,0.00044,4e-04,6e-04,0.00063,7e-04,0.00075,0.00087,0.00078,0.00087,0.00074,0.00084,0.00095,0.00093,0.00091,0.00101,0.00095,0.00097,0.00095,0.00093,9e-04,0.00081,0.00097,0.00104,0.0011,0.0011,0.00111,0.00114,0.00129,0.00131,0.00133,0.00135,0.00144,0.00159,0.00158,0.00153,0.00145,0.00138,0.00158,0.00177,0.00165,0.00186,0.00192,0.00162,0.00196,0.00172,0.00188,0.00191,0.00203,0.00188,0.00199,0.00205,0.00209,0.00201,0.00222,0.00214,0.00247,0.00258,0.0026,0.00278,0.00289,0.0027,0.00281,0.0028,0.00289,0.00284,0.00338,0.00306,0.00252,5e-04))
     }
 
-mainAlignQuick <-    function(bamFile,rngsAlign,dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength=100,conservativeContigAlign=FALSE,genomeName='Hsapiens',verbose=FALSE){
+mainAlignQuick <-    function(bamFile,rngsAlign,dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength=100,conservativeContigAlign=FALSE,genomeName='Hsapiens',returnIsizes=FALSE,findSplitReads=FALSE,bamFileSplits=NULL,verbose=FALSE){
 
-     alignedformatted <- doAlignAndformatQuick(bamFile,rngsAlign,dedup,typeArg,substitutionMat,pairlimit,gapOpeningArg ,gapExtensionArg,indelRate=indelRate,mmRate=mmRate,
-                                               readLength=readLength,conservativeContigAlign=conservativeContigAlign,genomeName=genomeName,verbose=verbose)
+
+
+     alignedformatted <- doAlignAndformatQuick(bamFile,rngsAlign,dedup,typeArg,substitutionMat,pairlimit,gapOpeningArg ,gapExtensionArg,indelRate=indelRate,mmRate=mmRate,readLength=readLength,conservativeContigAlign=conservativeContigAlign,genomeName=genomeName,returnIsizes=returnIsizes,verbose=verbose)
+
+     if(returnIsizes) return(alignedformatted$isizes)
 
      if(length(alignedformatted)==0) return(matrix(rep(1,readLength*2),ncol=2,dimnames=list(NULL,c('pvalSV','pvalContig'))))
 
-    alignF1<-alignedformatted[[1]]
-    alignR1<-alignedformatted[[2]]
-    alignF2<-alignedformatted[[3]]
-    alignR2<-alignedformatted[[4]]
+     alignF1<-alignedformatted[[1]]
+     alignR1<-alignedformatted[[2]]
+     alignF2<-alignedformatted[[3]]
+     alignR2<-alignedformatted[[4]]
      allmmSV<-alignedformatted[[5]]
      allindelSV<-alignedformatted[[6]]
-     softclippedseq1<-alignedformatted$sf1
-     softclippedseq2<-alignedformatted$sf2
+     softclippedseqF1<-alignedformatted$sf1
+     softclippedseqF2<-alignedformatted$sf2
+     softclippedseqR1<-alignedformatted$sr1
+     softclippedseqR2<-alignedformatted$sr2
 
-     pvalside1<-getpvalQuick(alignF1,alignR1,readLength,mmRate,indelRate,softclippedseq1)
-     pvalside2<-getpvalQuick(alignF2,alignR2,readLength,mmRate,indelRate,softclippedseq2)
+
+     pvalside1<-getpvalQuick(alignF1,alignR1,readLength,mmRate,indelRate,softclippedseqF1,softclippedseqR1)
+     pvalside2<-getpvalQuick(alignF2,alignR2,readLength,mmRate,indelRate,softclippedseqF2,softclippedseqR2)
 
      pvalContig <- pvalside1*pvalside2
+     numreads<-length(alignF1)+length(alignF2)+length(alignR1)+length(alignR2)
+     pvalSV <- getpvalQuickSV(allmmSV,allindelSV,readLength,numreads,mmRate,indelRate)
 
-     pvalSV <- getpvalQuickSV(allmmSV,allindelSV,readLength,length(alignF1)+length(alignF2)+length(alignR1)+length(alignR2),mmRate,indelRate)
+     if(findSplitReads){
+     alignedSplits<-doQuickSplits(bamFileSplits=bamFileSplits,rngsAlign=rngsAlign,dedup=dedup,typeArg =typeArg,substitutionMat=nucleotideSubstitutionMatrix(match = 5, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],pairlimit=pairlimit,gapOpeningArg = -100, gapExtensionArg = 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,conservativeContigAlign=conservativeContigAlign,genomeName=genomeName,verbose=verbose)
 
+     pvalsplit1<-getpvalQuick(alignedSplits[['alignF1']],alignedSplits[['alignR1']],readLength,mmRate,indelRate)
+     pvalsplit2<-getpvalQuick(alignedSplits[['alignF2']],alignedSplits[['alignR2']],readLength,mmRate,indelRate)
+     pvalSVsplit <- pvalsplit1 * pvalsplit2
+
+     pvalside1split<-getpvalQuick(alignedSplits[['alignedF1norm']],alignedSplits[['alignedR1norm']],readLength,mmRate,indelRate)
+     pvalside2split<-getpvalQuick(alignedSplits[['alignedF2norm']],alignedSplits[['alignedR2norm']],readLength,mmRate,indelRate)
+     pvalContigSplit <- pvalside1split * pvalside2split
+     pvalSV <- pvalSV*pvalSVsplit
+     pvalContig <- pvalContig*pvalContigSplit
+
+ }
      return(cbind(pvalSV,pvalContig))
 
 
@@ -247,7 +286,7 @@ mainAlignQuick <-    function(bamFile,rngsAlign,dedup=TRUE,typeArg ="global-loca
 
 getpvalQuickSV<-function(allmmSV,allindelSV,readLength,numreads,mmRate,indelRate){
 
-    tt <-table(allmmSV)
+    tt <-table(ceiling(allmmSV))
     allMismatches <- rep(0,readLength)
     allMismatches[ceiling(as.numeric(names(tt)))]<-tt
 
@@ -268,11 +307,11 @@ getpvalQuickSV<-function(allmmSV,allindelSV,readLength,numreads,mmRate,indelRate
 }
 
 
-getpvalQuick<-function(alignF,alignR,readLength,mmRate,indelRate,softclippedseq){
+getpvalQuick<-function(alignF,alignR,readLength,mmRate,indelRate,softclippedseqF,softclippedseqR){
 
         ### new
-        allMismatches<-getMismatchQuick(readLength,alignF,alignR,softclippedseq)
-        allIndel<-getindelsQuick(readLength,alignF,alignR,softclippedseq)
+        allMismatches<-getMismatchQuick(readLength,alignF,alignR,softclippedseqF,softclippedseqR)
+        allIndel<-getindelsQuick(readLength,alignF,alignR,softclippedseqF,softclippedseqR)
         allIndel<-allIndel[[1]]
 
 
@@ -288,31 +327,29 @@ getpvalQuick<-function(alignF,alignR,readLength,mmRate,indelRate,softclippedseq)
 
 doAlignAndformatQuick <-
     function(bamFile,rngsAlign,dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],
-             pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,conservativeContigAlign=FALSE,genomeName='Hsapiens',verbose=FALSE){
+             pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,conservativeContigAlign=FALSE,genomeName='Hsapiens',returnIsizes=FALSE,verbose=FALSE){
 
         bam <- getBam(bamFile,rngsAlign)
         if(length(bam)==0) return(list())
 
         pos1m<-parseCigarAndMD(bam[[1]]$MD,bam[[1]]$cigar)
         pos2m<-parseCigarAndMD(bam[[2]]$MD,bam[[2]]$cigar)
-        posInd<-mapply(function(x,y){which.max(c(length(x),length(y)))},pos1m[[1]],pos2m[[1]])
-
-        pos1mUse<-lapply(pos1m,function(x){x[posInd==1]})
-        pos2mUse<-lapply(pos2m,function(x){x[posInd==2]})
-
-        allmmSV<-as.vector(do.call(c,c(pos1mUse[[1]],pos2mUse[[1]])))
-        allindelSV<-c(pos1mUse[[2]],pos2mUse[[2]])
-
 
         bamseqs1 <- bam[[1]]$seq
         bamseqs2 <- bam[[2]]$seq
         matestrand1 <- as.character(bam[[2]]$strand)
         matestrand2 <- as.character(bam[[1]]$strand)
+        matepos1 <- bam[[1]]$mpos
+        matepos2 <- bam[[2]]$mpos
+        ### 10/24 new ####
+        matepos1[is.na(matepos1)] <- matepos2[is.na(matepos1)]
+        matepos2[is.na(matepos2)] <- matepos1[is.na(matepos2)]
+        ### end 10/24 new ####
 
         ### remove duplicates ###
         if(dedup){
             dups1 <- which(Biostrings::duplicated(bamseqs1))
-            dups2 <- which(Biostrings::duplicated(bamseqs1))
+            dups2 <- which(Biostrings::duplicated(bamseqs2)) ## 10/24 change
             if(length(dups1)>0 & length(dups2) >0){
                 dupstab <- table(c(dups1,dups2))
                 dupstab2<- dupstab[dupstab==2]
@@ -322,7 +359,11 @@ doAlignAndformatQuick <-
                     bamseqs2 <- bamseqs2[-dups]
                     matestrand1 <- matestrand1[-dups]
                     matestrand2 <- matestrand2[-dups]
-                    posInd <- posInd[-dups]
+                    ## posInd <- posInd[-dups]
+                    matepos1 <- matepos1[-dups]
+                    matepos2 <- matepos2[-dups]
+		    pos1m<-lapply(pos1m,function(x){if(is.null(nrow(x))){ret<-x[-dups]}else{ret<-x[-dups,]};ret})
+		    pos2m<-lapply(pos2m,function(x){if(is.null(nrow(x))){ret<-x[-dups]}else{ret<-x[-dups,]};ret})
                 }
             }
         }
@@ -334,9 +375,26 @@ doAlignAndformatQuick <-
                 bamseqs2 <- bamseqs2[1:pairlimit]
                 matestrand1 <- matestrand1[1:pairlimit]
                 matestrand2 <- matestrand2[1:pairlimit]
-                posInd <- posInd[1:pairlimit]
+                ## posInd <- posInd[1:pairlimit]
+                matepos1 <- matepos1[1:pairlimit]
+                matepos2 <- matepos2[1:pairlimit]
+		pos1m<-lapply(pos1m,function(x){if(is.null(nrow(x))){ret<-x[1:pairlimit]}else{ret<-x[1:pairlimit,]};ret})
+	        pos2m<-lapply(pos2m,function(x){if(is.null(nrow(x))){ret<-x[1:pairlimit]}else{ret<-x[1:pairlimit,]};ret})
+##                pos1mUse$softclip<-pos1mUse$softclip[1:pairlimit,]
+##                pos2mUse$softclip<-pos2mUse$softclip[1:pairlimit,]
 
             }
+
+        posInd<-mapply(function(x,y){which.max(c(length(x),length(y)))},pos1m[[1]],pos2m[[1]])
+
+        pos1mUse<-lapply(pos1m,function(x){if(is.null(nrow(x))){ret<-x[posInd==1]}else{ret<-x[posInd==1,]};ret})
+        pos2mUse<-lapply(pos2m,function(x){if(is.null(nrow(x))){ret<-x[posInd==2]}else{ret<-x[posInd==2,]};ret})
+        ## pos2mUse<-lapply(pos2m,function(x){x[posInd==2]})
+
+        allmmSV<-as.vector(do.call(c,c(pos1mUse[[1]],pos2mUse[[1]])))
+        allindelSV<-c(pos1mUse[[2]],pos2mUse[[2]])
+
+
 
 
         genome <- get(genomeName)
@@ -348,35 +406,125 @@ doAlignAndformatQuick <-
         ## might not need this
             bamseqs1R<-reverseComplement(bamseqs1)
             bamseqs2R<-reverseComplement(bamseqs2)
+
+         ## 10/24 New
+            qualitySeqs1R<-rep(PhredQuality(rev(mmRate)),length(bamseqs1R))
+            qualitySeqs2R<-rep(PhredQuality(rev(mmRate)),length(bamseqs2R))
+         ##
         }else{
         bamseqs1[matestrand1=='+'] <- reverseComplement(bamseqs1[matestrand1=='+'])
         bamseqs2[matestrand2=='+'] <- reverseComplement(bamseqs2[matestrand2=='+'])
     }
 
-        aligned1 <- pairwiseAlignment(bamseqs1,ref2,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
-        aligned2 <- pairwiseAlignment(bamseqs2,ref1,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+        ### 10/24New code for reviewer 1, optimize smith-waterman parameters for probability score
+        qualitySeqs1<-rep(PhredQuality(mmRate),length(bamseqs1))
+        qualitySeqs1[matestrand1=='+'] <- PhredQuality(rev(mmRate))
+        qualitySeqs2<-rep(PhredQuality(mmRate),length(bamseqs2))
+        qualitySeqs2[matestrand2=='+'] <- PhredQuality(rev(mmRate))
+        gapOpeningUse <- log2(mean(indelRate))
+        gapExtensionArg <- -2
+        ##### end new code #####
+
+        ### 10/24 depreciated
+        #aligned1 <- pairwiseAlignment(bamseqs1,ref2,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+        #aligned2 <- pairwiseAlignment(bamseqs2,ref1,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+        ### 10/24 depreciated
+
+        ## 10/24 new ###
+        aligned1 <- pairwiseAlignment(bamseqs1,ref2,type =typeArg, gapOpening = gapOpeningUse, patternQuality=qualitySeqs1, subjectQuality=PhredQuality(rep(99L,nchar(ref2))),
+                                      gapExtension = gapExtensionArg)
+        aligned2 <- pairwiseAlignment(bamseqs2,ref1,type =typeArg, gapOpening = gapOpeningUse, patternQuality=qualitySeqs2, subjectQuality=PhredQuality(rep(99L,nchar(ref1))),
+                                      gapExtension = gapExtensionArg)
+        ## 10/24 new ###
 
         if(conservativeContigAlign){
         ## might not need this
-        aligned1R <- pairwiseAlignment(bamseqs1R,ref2,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
-        aligned2R <- pairwiseAlignment(bamseqs2R,ref1,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+        ### 10/24 depreciated
+         #aligned1R <- pairwiseAlignment(bamseqs1R,ref2,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+         #aligned2R <- pairwiseAlignment(bamseqs2R,ref1,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+        ### 10/24 depreciated
+        ## 10/24 new ###
+        aligned1R <- pairwiseAlignment(bamseqs1R,ref2,type =typeArg,patternQuality=qualitySeqs1R, subjectQuality=PhredQuality(rep(99L,nchar(ref2))),
+                                       gapOpening = gapOpeningUse, gapExtension = gapExtensionArg)
+        aligned2R <- pairwiseAlignment(bamseqs2R,ref1,type =typeArg,patternQuality=qualitySeqs2R, subjectQuality=PhredQuality(rep(99L,nchar(ref1))),
+                                       gapOpening = gapOpeningUse, gapExtension = gapExtensionArg)
+        ## end 10/24 new ###
+
         AlignBest <- apply(cbind(score(aligned1),score(aligned1R),score(aligned2),score(aligned2R)),1,which.max)
+
         # might not need this
         alignedF1 <- aligned1[which(AlignBest==1)]
         alignedR1 <- aligned1R[which(AlignBest==2)]
         alignedF2 <- aligned2[which(AlignBest==3)]
         alignedR2 <- aligned2R[which(AlignBest==4)]
+        ## 10/24 new ###
+        mposF1 <- matepos1[which(AlignBest==1)]
+        mposR1 <- matepos1[which(AlignBest==2)]
+        mposF2 <- matepos2[which(AlignBest==3)]
+        mposR2 <- matepos2[which(AlignBest==4)]
+        ## end 10/24 new ###
+	F1softclip <- pos1m$softclip[which(AlignBest==1),]
+	R1softclip <- pos1m$softclip[which(AlignBest==2),]
+	F2softclip <- pos2m$softclip[which(AlignBest==3),]
+	R2softclip <- pos2m$softclip[which(AlignBest==4),]
 
     }else{
         AlignBest <- apply(cbind(score(aligned1),score(aligned2)),1,which.max)
         alignedF1 <- aligned1[which(AlignBest==1 & matestrand1 !='+')]
+        mposF1 <-matepos1[which(AlignBest==1 & matestrand1 !='+')]
+        mstrandF1<-matestrand1[which(AlignBest==1 & matestrand1 !='+')]
+	F1softclip <- pos1m$softclip[which(AlignBest==1 & matestrand1 !='+'),]
+
         alignedR1 <- aligned1[which(AlignBest==1 & matestrand1 =='+')]
+        mposR1 <-matepos1[which(AlignBest==1 & matestrand1 =='+')]
+        mstrandR1<-matestrand1[which(AlignBest==1 & matestrand1 =='+')]
+	R1softclip<-pos1m$softclip[which(AlignBest==1 & matestrand1 =='+'),]
+
+
         alignedF2 <- aligned2[which(AlignBest==2 & matestrand2 !='+')]
+        mposF2 <-matepos2[which(AlignBest==2 & matestrand2 !='+')]
+        mstrandF2<-matestrand2[which(AlignBest==2 & matestrand2 !='+')]
+	F2softclip<-pos2m$softclip[which(AlignBest==2 & matestrand2 !='+'),]
+
+
         alignedR2 <- aligned2[which(AlignBest==2 & matestrand2 =='+')]
-
+        mposR2 <-matepos2[which(AlignBest==2 & matestrand2 =='+')]
+        mstrandR2<-matestrand2[which(AlignBest==2 & matestrand2 =='+')]
+	R2softclip <- pos2m$softclip[which(AlignBest==2 & matestrand2 =='+'),]
+  ## 10/24 moved parens up ###
     }
+  ## 10/24 end move parens up ###
+        isizeF1<-mposF1+readLength-((start(rngsAlign)[2]+start(subject(alignedF1))))+1
+        if(any(isizeF1 < 100)){
 
-        return(list(alignedF1,alignedR1,alignedF2,alignedR2,allmmSV,allindelSV,sf1=pos1m$softclip,sf2=pos2m$softclip))
+            isizeF1[isizeF1<100] <-(start(rngsAlign)[2]+end(subject(alignedF1[isizeF1<100]))) -mposF1[isizeF1 < 100]
+        }
+
+        isizeR1<-(start(rngsAlign)[2]+end(subject(alignedR1)))-mposR1
+        if(any(isizeR1 < 100)){
+
+            isizeR1[isizeR1<100] <- mposR1[isizeR1<100]+readLength -(start(rngsAlign)[2]+start(subject(alignedR1[isizeR1<100])))+1
+        }
+
+        isizeF2<-mposF2+readLength-((start(rngsAlign)[1]+start(subject(alignedF2))))+1
+        if(any(isizeF2 < 100)){
+
+            isizeF2[isizeF2<100] <-(start(rngsAlign)[1]+end(subject(alignedF2[isizeF2<100]))) -mposF2[isizeF2 < 100]
+        }
+
+
+
+        isizeR2<-(start(rngsAlign)[1]+end(subject(alignedR2)))-mposR2
+        if(any(isizeR2 < 100)){
+
+            isizeR2[isizeR2<100] <- mposR2[isizeR2<100]+readLength -(start(rngsAlign)[1]+start(subject(alignedR2[isizeR2<100])))+1
+        }
+
+
+
+
+        return(list(alignedF1,alignedR1,alignedF2,alignedR2,allmmSV,allindelSV,sf1=F1softclip,sr1=R1softclip,sf2=F2softclip,sr2=R2softclip,
+                    isizes=c(isizeF1,isizeR1,isizeF2,isizeR2)))
 
     }
 
@@ -409,19 +557,19 @@ getindelsFull<-function(readLength,alignFmm,alignRmm,refInd){
 
         allIndel <- rep(0,readLength)
 
-        insertionsF<-do.call(c,mapply(function(x,y){setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
+        insertionsF<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
         if(is.null(insertionsF)) insertionsF <- IRanges()
         width(insertionsF)[width(insertionsF)>25]=25
 
-        insertionsR<-do.call(c,mapply(function(x,y){setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
+        insertionsR<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
 
         if(is.null(insertionsR)) insertionsR <- IRanges()
         width(insertionsR)[width(insertionsR)>25]=25
         insertionInds<-unlist(apply(cbind(start(insertionsF),(end(insertionsF))),1,function(x){x[1]:x[2]}))
 
-        deletionInds<-unlist(apply(cbind(start(unlist(deletion(alignFmm))),end(unlist(deletion(alignFmm)))),1,function(x){x[1]:x[2]}))
+        deletionInds<-unlist(apply(cbind(start(GenomicRanges::unlist(deletion(alignFmm))),end(GenomicRanges::unlist(deletion(alignFmm)))),1,function(x){x[1]:x[2]}))
 
-        delf<-unlist(deletion(alignFmm))
+        delf<-GenomicRanges::unlist(deletion(alignFmm))
         delf<-delf[refInd[start(delf)] == refInd[end(delf)]]
 
         forwardIndeltable<-table(c(insertionInds,start(delf)))
@@ -433,8 +581,8 @@ getindelsFull<-function(readLength,alignFmm,alignRmm,refInd){
 
         insertionIndsR<-unlist(apply(cbind(start(insertionsR),(end(insertionsR))),1,function(x){x[1]:x[2]}))
 ## just for deletions positions
-        deletionIndsR<-unlist(apply(cbind(start(unlist(deletion(alignRmm))),(end(unlist(deletion(alignRmm))))),1,function(x){x[1]:x[2]}))
-        reverseIndeltable<-table(readLength-c(insertionIndsR,start(unlist(deletion(alignRmm))))+1)
+        deletionIndsR<-unlist(apply(cbind(start(GenomicRanges::unlist(deletion(alignRmm))),(end(GenomicRanges::unlist(deletion(alignRmm))))),1,function(x){x[1]:x[2]}))
+        reverseIndeltable<-table(readLength-c(insertionIndsR,start(GenomicRanges::unlist(deletion(alignRmm))))+1)
 ## just for deletions positions
         reverseIndeltableWdel<-table(readLength-c(insertionIndsR,deletionIndsR)+1)
         reverseIndeltableWdel<-reverseIndeltableWdel[as.numeric(names(reverseIndeltableWdel)) %in% 1:readLength]
@@ -522,16 +670,9 @@ dfmake2 <-
             }
         })
         if(length(fordPEsComb)>1){
-            ### added for findSplitReadsOnly
-        fordPEsCombDup<- list();readfrac<-.7
-        while(length(fordPEsCombDup)==0){
-            fordPEsCombDup <- lapply(fordPEsComb,function(x){x2=x[order(as.numeric(x[,2]),x[,1]),];x3=x2[!duplicated(x2[,2]),];
-                                                             if(length(which(duplicated(x2[,2])))>(nrow(x3)*readfrac) & length(rngsAlign)>1){NA}else{x3}})
-            fordPEsCombDup[which(is.na(fordPEsCombDup))]<-NULL
-            if(readfrac==1) fordPEsCombDup <- fordPEsComb[1]
-            readfrac<-readfrac+.1
-        }
-        ## end added for findSplitReadsOnly
+        fordPEsCombDup <- lapply(fordPEsComb,function(x){x2=x[order(as.numeric(x[,2]),x[,1]),];x3=x2[!duplicated(x2[,2]),];
+                                                         if(length(which(duplicated(x2[,2])))>(nrow(x3)*.7) & length(rngsAlign)>1){NA}else{x3}})
+        fordPEsCombDup[which(is.na(fordPEsCombDup))]<-NULL
     }else fordPEsCombDup <- fordPEsComb
 
         if(length(rngsAlign)>1 & (bamnamesRemove[1]=='' | doingSplits==TRUE)){
@@ -545,11 +686,10 @@ dfmake2 <-
             }else{
             o<-'b.probableInv'
         }
-            ### added | pairedo=='' for findSplitReadsOnly
+
             gaploc<-reduce(matchPattern('-',paste(x[,1],collapse='')))
             nocontradiction <- ((length(gaploc)==2 & !any(is.na(match(c('a.facing','c.back2back'),c(o,pairedo))))) |
-            length(gaploc)==1 & (o==pairedo | pairedo==''))
-
+            length(gaploc)==1 & o==pairedo)
             if(doingSplits & nocontradiction &
                (length(gaploc)==1 | (length(gaploc)==2 & !any(is.na(match(c(1,nrow(x)), c(start(gaploc),end(gaploc)))))))){
                 o<-'d.split'
@@ -562,9 +702,7 @@ dfmake2 <-
 
         splitOrientation<-split(orientation,names(orientation))
         meanMistakes<-sapply(splitOrientation,mean)
-        ##readsnum<-sapply(splitOrientation,length)
         typeuse<-names(meanMistakes)[which.min(meanMistakes)]
-        ##typeuse<-names(meanMistakes)[which.max(readsnum)]
 
         ##typeuse<-names(table(orientation))[which.max(table(orientation))]
         ##if(typeuse != 'c.back2back') fordPEsCombDup<-fordPEsCombDup[orientation != 'c.back2back']
@@ -572,8 +710,7 @@ dfmake2 <-
         if(doingSplits) {
 
             fordPEsCombDup<-fordPEsCombDup[names(orientation) == 'd.split']
-            ### removed typeuse for findSplitReadsOnly
-            if(length(fordPEsCombDup)==0) return(data.frame())
+            if(length(fordPEsCombDup)==0 | typeuse != 'd.split') return(data.frame())
         }else if(length(which(names(orientation)==typeuse)) >2) fordPEsCombDup<-fordPEsCombDup[names(orientation) ==typeuse]
 
     }
@@ -670,6 +807,10 @@ getBamStrand <-
 getBamFull <-
     function(bamFile,rngs){
         para <- ScanBamParam(which=rngs,what=scanBamWhat(),reverseComplement=TRUE)
+
+##                arn<-get('arngs',envir=.GlobalEnv)
+##                assign('arngs',c(arn,rngs),envir=.GlobalEnv)
+
         bam <- scanBam(bamFile, param=para)
         return(bam)
     }
@@ -725,12 +866,11 @@ withflankNs <-
         return(DNAStringSet(paste(Nb,trim,Ne,sep='')))
     }
 
-## add findSplitReadsOnly arg
-mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,filternames='',dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,pairlimit=2e3,bamFileSplits=NULL,MMsplits=15,didSplits=FALSE,genomeName,findSplitReadsOnly=FALSE,verbose=FALSE){
-### if findSplitReadsOnly and didSplits added
-    if(findSplitReadsOnly==FALSE){
+
+mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,filternames='',dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,pairlimit=2e3,bamFileSplits=NULL,MMsplits=15,didSplits=FALSE,genomeName,verbose=FALSE){
+
      alignedformatted <- doAlignAndformatFull(bamFile=bamFile,rngsRead=rngsRead,rngsAlign=rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MM,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMat,pairlimit=pairlimit,
-                                gapOpeningArg=gapOpeningArg ,gapExtensionArg=gapExtensionArg,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove='',genomeName=genomeName,doingSplits=FALSE,pairedo='',findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
+                                gapOpeningArg=gapOpeningArg ,gapExtensionArg=gapExtensionArg,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove='',genomeName=genomeName,doingSplits=FALSE,pairedo='',verbose=verbose)
      if(length(alignedformatted)>0){
 
     dftailA <- alignedformatted[[1]]
@@ -746,14 +886,7 @@ mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findS
         alignR <- alignR[Rkeep2]
         bamnamesF <- bamnamesF[Fkeep2]
         bamnamesR <- bamnamesR[Rkeep2]
-    ## added for findSplitReadsOnly but now general purpose
-    if(length(bamnamesF)>0) names(bamnamesF) <- rep("F",length(bamnamesF))
-    if(length(bamnamesR)>0) names(bamnamesR) <- rep("R",length(bamnamesR))
-    names(bamnamesUse2)[bamnamesUse2 %in% bamnamesF]='F'
-    names(bamnamesUse2)[bamnamesUse2 %in% bamnamesR]='R'
-    
-    ## end added for findSplitReadsOnly
-    browser()
+
      pval<-getpvalFull(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate,indelRate)
 }else{
 
@@ -762,25 +895,14 @@ mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findS
     bamnamesUse2 <- vector()
     bamnamesF <-bamnamesR <-''
 }
- }else{ ### else for findSplitReadsOnly
-     bamnamesF<-bamnamesR<-''; dftailA <-data.frame();pval<-rep(1,readLength);bamnamesUse2<-vector()
- } ### added findSplitReadsOnly to if
-    if(findSplitReadsOnly==TRUE | (length(unique(dftailA$ypostail))<5 & !is.null(bamFileSplits) & findSplitReads==TRUE) | didSplits==TRUE){
+    if((length(unique(dftailA$ypostail))<5 & !is.null(bamFileSplits) & findSplitReads==TRUE) | didSplits==TRUE){
         ##print(rngsAlign);
 
         substitutionMatSplits<-nucleotideSubstitutionMatrix(match = 5, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)]
 
         pairedo<- ifelse(is.na(rownames(dftailA)[1]),'',rownames(dftailA)[1])
-### added findSplitReadsOnly and didSplits
-
          alignedformattedSplits <-doAlignAndformatFull(bamFileSplits,rngsRead,rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
-                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove=c(bamnamesF,bamnamesR),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
-### added for findSplitReadsOnly
-        if(length(alignedformattedSplits)==0 & findSplitReadsOnly){
-         alignedformattedSplits <-doAlignAndformatFull(bamFile,rngsRead,rngsAlign,filtSings=filtSings,findSplitReads=findSplitReads,filterbyMM=filterbyMM,MM=MMsplits,filterbyname=filterbyname,filternames=filternames,dedup=dedup,typeArg=typeArg,substitutionMat=substitutionMatSplits,
-                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove=c(bamnamesF,bamnamesR),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,findSplitReadsOnly=findSplitReadsOnly,didSplits=didSplits,verbose=verbose)
-     }
-### end added for findSplitReadsOnly
+                                pairlimit=pairlimit,gapOpeningArg=-100 ,gapExtensionArg= 0,indelRate=indelRate,mmRate=mmRate,readLength=readLength,bamnamesRemove=c(bamnamesF,bamnamesR),genomeName=genomeName,doingSplits=TRUE,pairedo=pairedo,verbose=verbose)
 
 
 
@@ -798,21 +920,10 @@ mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findS
         alignR2<-alignR2[Rkeep2]
         bamnamesF2<-bamnamesF2[Fkeep2]
         bamnamesR2<-bamnamesR2[Rkeep2]
-        if(length(rngsAlign)==2){
-        bestSplitScoreInd<-which.max(c(score(alignF2),score(alignR2)))
-        splitUse<-(c(DNAStringSet(as.character(pattern(alignF2))),DNAStringSet(as.character(pattern(alignR2)))))[bestSplitScoreInd]
-        splitUse<-gsub('-','',as.character(splitUse))
-        names(splitUse)<-c(bamnamesF2,bamnamesR2)[bestSplitScoreInd]
-        if(length(splitUse)==0) splitUse<-''
-    }else splitUse<-''
 
         pval2<-getpvalFull(bamnamesF2,bamnamesR2,alignF2,alignR2,readLength,refInd2,mmRate,indelRate)
         pval<-pval*pval2
         bamnamesUse2<-c(bamnamesUse2,bamnamesUseSplits)
-        ## added code for findSplitReadsOnly but generally applicable
-        names(bamnamesUse2)[bamnamesUse2 %in% c(bamnamesF,bamnamesF2)]='F'
-        names(bamnamesUse2)[bamnamesUse2 %in% c(bamnamesR,bamnamesR2)]='R'
-        ## added code for findSplitReadsOnly but generally applicable
         if(length(bamnamesUse2)==0) bamnamesUse2 <- ''
 
         dftailB$ypostail[dftailB$ypostail != -1]=dftailB$ypostail[dftailB$ypostail != -1]+suppressWarnings(max(c(0,max(dftailA$ypostail))))
@@ -823,9 +934,8 @@ mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findS
         didSplits<-TRUE
     }
 
-    if(exists('splitUse')==FALSE) splitUse<-''
 
-        result <- list(bamnames=bamnamesUse2,forplot=dftailA,pval=pval,didSplits=didSplits,splitRead=splitUse)
+        result <- list(bamnames=bamnamesUse2,forplot=dftailA,pval=pval,didSplits=didSplits)
 
 
 
@@ -833,9 +943,41 @@ mainAlignViewFull <-    function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findS
 
 getpvalFull<-function(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate,indelRate){
         ## A little redundant
+        ### Test setting pval based on concordance
+	if(length(alignR)>0 & length(alignF) > 0){
+        missum<-rbind(mismatchSummary(alignR)$subject,mismatchSummary(alignF)$subject)
+	} else if(length(alignR)>0){
+	 missum<-mismatchSummary(alignR)$subject
+	 }else{
+	 missum<-mismatchSummary(alignF)$subject
+	 }
+	
+##        concor<-sapply(with(missum,split(missum,SubjectPosition)),function(x){(sum(x$Count)/(sum(x$Count/x$Probability)))>=.5 & sum(x$Count) > 2})
+        concor<-sapply(with(missum,split(missum,SubjectPosition)),function(x){sum(x$Count*x$Probability) >=2})
+        if(any(concor)){
+        snps<-as.numeric(names(which(concor)))
+        ## whole genome rate
+        snpProb <- 1; snps=0;
+        ##snpProb <-(0.0003585839)^length(snps)
+        ##snpProb <-(0.003585839)^length(snps)
+        ## target capture rate
+        ##snpProb<-(0.005340979)^length(snps)
+        #snpProb<-(0.001)^length(snps)
+    }else{
+        snps<-0
+        snpProb<-1
+    }
+        mf<-mismatchTable(alignF)
+        rff<-mismatchTable(alignR)
+        if(length((which(mf$SubjectStart %in% snps)))>0)         mf<-mf[-(which(mf$SubjectStart %in% snps)),]
+        if(length((which(rff$SubjectStart %in% snps)))>0)         rff<-rff[-(which(rff$SubjectStart %in% snps)),]
 
-        forwardMtable <- table(mismatchTable(alignF)$PatternId)
-                reverseMtable <- table(mismatchTable(alignR)$PatternId)
+        #### Done with code to test pval based on concordance
+
+        ### changed mismatchTable(alignF) to mf
+        forwardMtable <- table(mf$PatternId)
+        ### changed mismatchTable(alignR) to rff
+                reverseMtable <- table(rff$PatternId)
                 allMismatchesF <- rep(0,length(alignF))
                 allMismatchesR <- rep(0,length(alignR))
                 allMismatchesF[as.numeric(names(forwardMtable))] <- forwardMtable
@@ -878,7 +1020,8 @@ getpvalFull<-function(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate
 
         indelBinom <- sapply(1:readLength,function(x){sum(dbinom(allIndel[x]:numreads,numreads,indelRate[x]))})
 
-        pval <- indelBinom*mismatchBinom ##c(indelBinom,mismatchBinom)
+        ### added * snpProb^(1/readLength)
+        pval <- indelBinom*mismatchBinom * snpProb^(1/readLength)##c(indelBinom,mismatchBinom)
         return(pval)
 
 
@@ -889,10 +1032,10 @@ getpvalFull<-function(bamnamesF,bamnamesR,alignF,alignR,readLength,refInd,mmRate
 
 
 }
-## added findSplitReadsOnly argument
+
 doAlignAndformatFull <-
     function(bamFile,rngsRead,rngsAlign,filtSings=TRUE,findSplitReads=FALSE,filterbyMM=TRUE,MM=6,filterbyname=FALSE,filternames='',dedup=TRUE,typeArg ="global-local",substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],
-             pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,bamnamesRemove='',genomeName='Hsapiens',doingSplits=FALSE,pairedo='',findSplitReadsOnly=FALSE,didSplits=FALSE,verbose=FALSE){
+             pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,indelRate,mmRate,readLength,bamnamesRemove='',genomeName='Hsapiens',doingSplits=FALSE,pairedo='',verbose=FALSE){
 
 
 
@@ -963,7 +1106,7 @@ doAlignAndformatFull <-
         if(length(rngsAlign)==1){
             refalign <- paste(suppressWarnings(Views(genome[[paste('chr',gsub('chr','',seqnames(rngsAlign)[1]),sep='')]],ranges(rngsAlign))),collapse='')
         }else if(length(rngsAlign)==2){
-            rngsAlign<-sort(rngsAlign)
+            rngsAlign<-GenomicRanges::sort(rngsAlign)
 
             ref1 <- suppressWarnings(Views(genome[[paste('chr',gsub('chr','',seqnames(rngsAlign)[1]),sep='')]],ranges(rngsAlign)[1]))
             ref2 <- suppressWarnings(Views(genome[[paste('chr',gsub('chr','',seqnames(rngsAlign)[2]),sep='')]],ranges(rngsAlign)[2]))
@@ -979,28 +1122,31 @@ doAlignAndformatFull <-
         refNames <- unlist(apply(cbind(as.character(seqnames(rngsAlign)),width(rngsAlign)),1,function(x){rep(x[1],as.numeric(x[2]))}))
         refRa <- GRanges(seqnames=refNames,ranges=IRanges(start=refInd,width=1))
 
+
+
+
+        ### 10/24 only if doing splits ####
+        if(doingSplits){
         alignFnew <- pairwiseAlignment(bamseqs,refalign,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
         alignRnew <- pairwiseAlignment(reverseComplement(bamseqs),refalign,type =typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
+    }else{
+      ### 10/24 new ####
 
-        #### new for findSplitReadsOnly
-        if(findSplitReadsOnly & didSplits==FALSE){
-            delnamesF<-rep(1:length(alignFnew),lapply(deletion(alignFnew),length))
-            delsF<-unlist(deletion(alignFnew))
-            names(delsF)<-delnamesF
-            startsF<-start(subject(alignFnew))[as.numeric(names(delsF))]
-            splitsIndF<-as.numeric(names(delsF)[(refM[startsF+start(delsF)-1] != refM[startsF+end(delsF)-1])])
-            delnamesR<-rep(1:length(alignRnew),lapply(deletion(alignRnew),length))
-            delsR<-unlist(deletion(alignRnew))
-            names(delsR)<-delnamesR
-            startsR<-start(subject(alignRnew))[as.numeric(names(delsR))]
-            splitsIndR<-as.numeric(names(delsR)[(refM[startsR+start(delsR)-1] != refM[startsR+end(delsR)-1])])
-            alignF <- alignFnew[splitsIndF]
-            alignR <- alignRnew[splitsIndR]
-            bamnamesF <- bamnames[splitsIndF]
-            bamnamesR <- bamnames[splitsIndR]
+         ## 10/24 New
+            qualitySeqsR<-rep(PhredQuality(rev(mmRate)),length(bamseqs))
+            qualitySeqs<-rep(PhredQuality(mmRate),length(bamseqs))
+        subjectqual <- PhredQuality(rep(99L,nchar(refalign)))
+        gapOpeningUse <- log2(mean(indelRate))
+       gapExtensionArg <- -2
+        #### end 10/24 new ####
 
-            #### end new for findSplitReadsOnly (added else statement below)
-        }else{
+
+        alignFnew <- pairwiseAlignment(bamseqs,refalign,type =typeArg,gapOpening = gapOpeningUse, patternQuality=qualitySeqs, subjectQuality=subjectqual,
+                                       gapExtension = gapExtensionArg)
+        alignRnew <- pairwiseAlignment(reverseComplement(bamseqs),refalign,type =typeArg,gapOpening = gapOpeningUse, patternQuality=qualitySeqsR,
+                                       subjectQuality=subjectqual,gapExtension = gapExtensionArg)
+        }
+        ### end 10/24 new  ####
 
 
         AlignBest <- apply(cbind(score(alignFnew),score(alignRnew)),1,which.max)
@@ -1010,12 +1156,12 @@ doAlignAndformatFull <-
 
         bamnamesF <- bamnames[which(AlignBest==1)]
         bamnamesR <- bamnames[which(AlignBest==2)]
-    } ### end else statement
+
 
         trimF <- trimFunc(alignF,TRUE)
         trimR <- trimFunc(alignR,TRUE)
 
-        if(filterbyMM & findSplitReadsOnly==FALSE){
+        if(filterbyMM){
             doloop=TRUE
             MMuse<-MM
 
@@ -1053,17 +1199,9 @@ doAlignAndformatFull <-
                 Rkeep <- which(bamnamesR %in% bamnamesInit)
             }
         }else if(filterbyname){
-            ## added code for findSplitReadsOnly
-            Fkeep <- which(bamnamesF %in% filternames[!findSplitReadsOnly | names(filternames)=='F'])
-            Rkeep <- which(bamnamesR %in% filternames[!findSplitReadsOnly | names(filternames)=='R'])
-            ## end added code for findSplitReadsOnly
-        }else if(findSplitReadsOnly){
-            print('finding split reads only');
-            Fkeep <- which(rowSums(letterFrequency(trimF,c('A','C','T','G')))<MM)## & rowSums(letterFrequency(trimF,c('M')))>(.6*readLength))# | score(alignF)>0)
-            Rkeep <- which(rowSums(letterFrequency(trimR,c('A','C','T','G')))<MM)## & rowSums(letterFrequency(trimR,c('M')))>(.6*readLength))# | score(alignR)>0)
-        }## end else for findSplitReadsOnly
-
-
+            Fkeep <- which(bamnamesF %in% filternames)
+            Rkeep <- which(bamnamesR %in% filternames)
+        }
 
         trimF <- trimF[Fkeep]
         trimR <- trimR[Rkeep]
@@ -1071,26 +1209,6 @@ doAlignAndformatFull <-
         alignR <- alignR[Rkeep]
         bamnamesF <- bamnamesF[Fkeep]
         bamnamesR <- bamnamesR[Rkeep]
-
-        ### added for findSplitReadsOnly
-        if(findSplitReadsOnly & (any(duplicated(bamnamesF)))){
-
-            alignFord<-order(score(alignF),decreasing=TRUE)
-            FkeepSplit<-alignFord[which(!duplicated(bamnamesF[alignFord]))]
-            alignF<-alignF[FkeepSplit]
-            trimF<-trimF[FkeepSplit]
-            bamnamesF<-bamnamesF[FkeepSplit]
-
-        }
-        if(findSplitReadsOnly & (any(duplicated(bamnamesR)))){
-            alignRord<-order(score(alignR),decreasing=TRUE)
-            RkeepSplit<-alignRord[which(!duplicated(bamnamesR[alignRord]))]
-            alignR<-alignR[RkeepSplit]
-            trimR<-trimR[RkeepSplit]
-            bamnamesR<-bamnamesR[RkeepSplit]
-        }
-        ## done for findSplitReadsOnly
-
         bamnamesUse <- c(bamnamesF,bamnamesR)##,bamnamesFsplit,bamnamesRsplit)
 
         correctPosFor <- start(alignF@subject)

@@ -3,7 +3,7 @@ function(events,filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,allowedMM=6,initi
          indelRate,mmRate,readLength,pairlimit=2e3,gapOpeningArg = -4, gapExtensionArg = -1,
          substitutionMat=nucleotideSubstitutionMatrix(match = 1, mismatch = -3)[c(1:4,8:9,15),c(1:4,8:9,15)],build='hg19',
          bsbuildprefix="BSgenome.Hsapiens.UCSC.",
-         MMsplits=15,rngsAlign=GRanges(),validChr=c(1:22,'X','Y','M'),findSplitReadsOnly=FALSE,verbose=FALSE){
+         MMsplits=15,rngsAlign=GRanges(),validChr=c(1:22,'X','Y','M'),verbose=FALSE){
 
 
     do.call(library, list(paste(bsbuildprefix, build, sep='')))
@@ -54,29 +54,23 @@ function(events,filtsings=TRUE,findSplitReads=FALSE,dedup=TRUE,allowedMM=6,initi
 #        print(c(rngsAlign,secondrngsAlign,thirdrngsAlign))
         aligned1=mainAlignViewFull(bamFile,rngs,rngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=TRUE,MM=allowedMM[ii],
         indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii], gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,MMsplits=MMsplits,didSplits=FALSE,
-        genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        genomeName=genomeName,verbose=verbose)
         bamnames=aligned1[[1]]
 
         if(verbose) print(paste('primary alignment for event',ii,'done'))
 
-
-        ## added for findSplitReadsOnly
-        if(findSplitReadsOnly & length(bamnames)==0){
-            aligned2<-aligned3<-aligned1
-        }else{
-
         aligned2=mainAlignViewFull(bamFile,rngs,secondrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,filterbyname=TRUE,
         filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii],
         gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
-        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,verbose=verbose)
         if(verbose) print(paste('secondary alignment (1 of 2) for event',ii,'done'))
 
         aligned3=mainAlignViewFull(bamFile,rngs,thirdrngsAlign,filtSings=filtsings,findSplitReads=findSplitReads,dedup=dedup,filterbyMM=FALSE,filterbyname=TRUE,
         filternames=bamnames,indelRate=indelRate,mmRate=mmRate,readLength=readLength,pairlimit=pairlimit,gapOpeningArg = gapOpeningArg[ii],
         gapExtensionArg = gapExtensionArg[ii],substitutionMat=substitutionMat[[ii]],bamFileSplits=bamFileSplits,
-        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,findSplitReadsOnly=findSplitReadsOnly,verbose=verbose)
+        didSplits=aligned1[[4]],MMsplits=MMsplits,genomeName=genomeName,verbose=verbose)
         if(verbose) print(paste('secondary alignment (2 of 2) for event',ii,'done'))
-    }
+
         aligned123=list(aligned1,aligned2,aligned3)
 
         return(aligned123)
