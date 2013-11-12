@@ -1,6 +1,6 @@
 Package: targetSeqView
 Title: View alignments over candidate structural variant loci
-Version: 0.99
+Version: 0.99.1
 Date: 2013-08-21
 Author: Eitan Halper-Stromberg
 Maintainer: Eitan Halper-Stromberg <ehalper2@jhmi.edu>
@@ -8,9 +8,10 @@ Description: View putative alignments for loci involved in structural rearrangem
 License: GPL (>= 2)
 LazyLoad: yes
 Depends: R (>= 2.14), foreach, Rsamtools, GenomicRanges,
-        Biostrings,IRanges, BSgenome, BSgenome.Hsapiens.UCSC.hg19, ggplot2, doMC, grid
+        Biostrings,IRanges, BSgenome, BSgenome.Hsapiens.UCSC.hg19,
+        ggplot2, doMC, grid
 Ehhances: doMC
 Collate: targetSeqView_functions.R alignQuick.R alignViewFull.R
-        getErrorRate.R ViewAndScoreFull.R doQuickScore.R formatPlot.R
+        normalAlign.R ViewAndScoreFull.R quickScore.R quickSplits.R formatPlot.R
         methods.R
-Packaged: 2013-08-22 01:34:25 UTC; ehalper
+
