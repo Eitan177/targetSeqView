@@ -14,4 +14,3 @@ Ehhances: doMC
 Collate: targetSeqView_functions.R alignQuick.R alignViewFull.R
         getErrorRate.R ViewAndScoreFull.R doQuickScore.R quickScore.R quickSplits.R formatPlot.R
         methods.R
-
