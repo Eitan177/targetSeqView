@@ -100,11 +100,11 @@ getindelsQuick<-function(readLength,alignFmm,alignRmm,softclippedseqF,softclippe
 
         allIndel <- rep(0,readLength)
 
-        insertionsF<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
+        insertionsF<-do.call(c,mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
         if(is.null(insertionsF)) insertionsF <- IRanges()
         width(insertionsF)[width(insertionsF)>25]=25
 
-        insertionsR<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
+        insertionsR<-do.call(c,mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
 
         if(is.null(insertionsR)) insertionsR <- IRanges()
         width(insertionsR)[width(insertionsR)>25]=25
@@ -557,11 +557,11 @@ getindelsFull<-function(readLength,alignFmm,alignRmm,refInd){
 
         allIndel <- rep(0,readLength)
 
-        insertionsF<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
+        insertionsF<-do.call(c,mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignFmm),deletion(alignFmm)))
         if(is.null(insertionsF)) insertionsF <- IRanges()
         width(insertionsF)[width(insertionsF)>25]=25
 
-        insertionsR<-do.call(c,IRanges::mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
+        insertionsR<-do.call(c,mapply(function(x,y){GenomicRanges::setdiff(reduce(x),y);reduce(x)},insertion(alignRmm),deletion(alignRmm)))
 
         if(is.null(insertionsR)) insertionsR <- IRanges()
         width(insertionsR)[width(insertionsR)>25]=25
