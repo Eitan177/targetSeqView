@@ -63,6 +63,7 @@ setMethod("quickScore","candidates", function(object,...){
                                   bamFilePath=object@bamFilePath,
                                   mmRate=object@mmRate,
                                   indelRate=object@indelRate,
+                                  build=object@build,
                                 ...)
 
      object@forplot <- retvals[['forplot']]

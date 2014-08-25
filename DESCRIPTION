@@ -1,9 +1,9 @@
 Package: targetSeqView
 Title: View alignments over candidate structural variant loci
-Version: 0.99.1
-Date: 2013-08-21
+Version: 0.99.2
+Date: 2014-08-23
 Author: Eitan Halper-Stromberg
-Maintainer: Eitan Halper-Stromberg <ehalper2@jhmi.edu>
+Maintainer: Eitan Halper-Stromberg <Eitan177@gmail.com>
 Description: View putative alignments for loci involved in structural rearrangements
 License: GPL (>= 2)
 LazyLoad: yes

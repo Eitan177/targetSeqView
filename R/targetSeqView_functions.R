@@ -148,8 +148,9 @@ getRandomBamRecords <-
         bamheader<-scanBamHeader(bamFile)[[1]]
         chr<- names(bamheader$targets)
         chrlen <-bamheader$targets
-        rngsCheck<-unlist(GRangesList(sapply(1:length(chr),function(x){
-            GRanges(seqnames=chr[x],ranges= breakInChunks(chrlen[x],chunks))})))
+        ## 8/22 change
+        rngsCheck<-do.call(c,as.list(GRangesList(sapply(1:length(chr),function(x){
+            GRanges(seqnames=chr[x],ranges= breakInChunks(chrlen[x],chunks))}))))
             ind <- nrecs<-0
             para <- ScanBamParam()
         while(nrecs < recnum){
@@ -1134,7 +1135,11 @@ doAlignAndformatFull <-
 
          ## 10/24 New
             qualitySeqsR<-rep(PhredQuality(rev(mmRate)),length(bamseqs))
+         ### 8/22 New ###   
+            qualitySeqsR<-PhredQuality(substring(qualitySeqsR,first=rep(1,length(bamseqs)),last=width(bamseqs)))
             qualitySeqs<-rep(PhredQuality(mmRate),length(bamseqs))
+            ### 8/22 New ###
+            qualitySeqs<-PhredQuality(substring(qualitySeqs,first=rep(1,length(bamseqs)),last=width(bamseqs)))            
         subjectqual <- PhredQuality(rep(99L,nchar(refalign)))
         gapOpeningUse <- log2(mean(indelRate))
        gapExtensionArg <- -2
@@ -1161,6 +1166,9 @@ doAlignAndformatFull <-
         trimF <- trimFunc(alignF,TRUE)
         trimR <- trimFunc(alignR,TRUE)
 
+        ### added 8/22
+        ##if(length(unique(width(bamseqs)))>1) filterbyMM <- FALSE
+        
         if(filterbyMM){
             doloop=TRUE
             MMuse<-MM
@@ -1184,7 +1192,7 @@ doAlignAndformatFull <-
             Fkeep <- which(rowSums(letterFrequency(trimF,c('A','C','T','G')))<MMuse)## & rowSums(letterFrequency(trimF,c('M')))>(.6*readLength))# | score(alignF)>0)
             Rkeep <- which(rowSums(letterFrequency(trimR,c('A','C','T','G')))<MMuse)## & rowSums(letterFrequency(trimR,c('M')))>(.6*readLength))# | score(alignR)>0)
             bamnamesInit <- (c(bamnamesF[Fkeep],bamnamesR[Rkeep]))
-
+            
             if(length(rngsAlign)>1 &  bamnamesRemove[1]==''){
                 doloop<-all(aggregate(refM[c(start(alignF[Fkeep]@subject),start(alignR[Rkeep]@subject))],by=list(bamnamesInit),
                                     function(x){length(unique(x))})[,2]<2)

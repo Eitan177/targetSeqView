@@ -35,12 +35,16 @@ function(bamFile,typeArg ="global-local",recnum=1e5,
     alignFRnew <- pairwiseAlignment(bamseqs,refs,type=typeArg,substitutionMatrix=substitutionMat,gapOpening = gapOpeningArg, gapExtension = gapExtensionArg)
         mmSummary<-mismatchSummary(pattern(alignFRnew))$position
         IndelRate<-rep(0,max(mmSummary$Position))
-        tt<-table(unlist(apply(cbind(start(unlist(insertion(alignFRnew))),end((unlist(insertion(alignFRnew))))),1,function(x){x[1]:x[2]})))
+#        tt<-table(unlist(apply(cbind(start(unlist(insertion(alignFRnew))),end((unlist(insertion(alignFRnew))))),1,function(x){x[1]:x[2]})))
+        ## 8/22 change
+        tt<-table(unlist(apply(cbind(start(do.call(c,as.list(insertion(alignFRnew)))),end((do.call(c,as.list(insertion(alignFRnew)))))),1,function(x){x[1]:x[2]})))        
         tt<-tt[as.numeric(names(tt)) %in% mmSummary$Position]
         IndelRate[as.numeric(names(tt))] <- tt/length(alignFRnew)
-        tt2<-table(unlist(apply(cbind(start(unlist(deletion(alignFRnew))),end((unlist(deletion(alignFRnew))))),1,function(x){x[1]:x[2]})))##table(unlist(start(deletion(alignFRnew))))
-        tt2<-table(unlist(start(deletion(alignFRnew))))##tt2[as.numeric(names(tt2)) %in% mmSummary$Position]
+        ## 8/22 change
+        tt2<-table(unlist(apply(cbind(start(do.call(c,as.list(deletion(alignFRnew)))),end(do.call(c,as.list(deletion(alignFRnew))))),1,function(x){x[1]:x[2]})))##table(unlist(start(deletion(alignFRnew))))
+        ###tt2<-table(unlist(start(deletion(alignFRnew))))##tt2[as.numeric(names(tt2)) %in% mmSummary$Position]
         IndelRate[as.numeric(names(tt2))] <- IndelRate[as.numeric(names(tt2))]+tt2/length(alignFRnew)
-
+        ### added 8/22
+        IndelRate<-as.numeric(na.omit(IndelRate))
     return(list(mmRate=mmSummary$Probability,indelRate=IndelRate))
     }
